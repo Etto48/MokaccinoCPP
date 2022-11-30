@@ -43,30 +43,30 @@ namespace logging
     
     void message_log(std::string src, std::string message)
     {
-        log("DBG",_format("Message from " HIGHLIGHT "{}" RESET " received: \"" HIGHLIGHT "{}" RESET "\"",src,message));
+        log("DBG","Message from " HIGHLIGHT + src + RESET " received: \"" HIGHLIGHT + message + RESET "\"");
     }
     void new_thread_log(std::string thread_name)
     {
-        log("DBG",_format("Thread " HIGHLIGHT "{}" RESET " started",thread_name));
+        log("DBG","Thread " HIGHLIGHT + thread_name + RESET " started");
     }
     void supervisor_log(size_t connections,size_t services)
     {
-        log("DBG",_format(TAG "[SUPERVISOR]" RESET " connections:" HIGHLIGHT "{}" RESET " services:" HIGHLIGHT "{}" RESET,connections,services));
+        log("DBG",TAG "[SUPERVISOR]" RESET " connections:" HIGHLIGHT + std::to_string(connections) + RESET " services:" HIGHLIGHT + std::to_string(services) + RESET);
     }
     void new_user_log(std::string name, const boost::asio::ip::udp::endpoint& endpoint)
     {
-        log("DBG",_format("User " HIGHLIGHT "{}" RESET ", (" HIGHLIGHT "{}" RESET ":" HIGHLIGHT "{}" RESET ") added",name,endpoint.address().to_string(),endpoint.port()));
+        log("DBG","User " HIGHLIGHT + name + RESET ", (" HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET ") added");
     }
     void removed_user_log(std::string name)
     {
-        log("DBG",_format("User " HIGHLIGHT "{}" RESET " removed",name));
+        log("DBG","User " HIGHLIGHT + name + RESET " removed");
     }
     void connection_test_log(const network::MessageQueueItem& item)
     {
-        log("DBG",_format(TAG "[CONNECTION]" RESET " Handled test message \"" HIGHLIGHT "{}" RESET "\" from " HIGHLIGHT "{}" RESET "@" HIGHLIGHT "{}" RESET ":" HIGHLIGHT "{}" RESET,item.msg,item.src,item.src_endpoint.address().to_string(),item.src_endpoint.port()));
+        log("DBG",TAG "[CONNECTION]" RESET " Handled test message \"" HIGHLIGHT + item.msg + RESET "\" from " HIGHLIGHT + item.src + RESET "@" HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
     }
     void terminal_processing_log(const std::string& line)
     {
-        log("DBG",_format(TAG "[TERMINAL]" RESET "Processing command \"" HIGHLIGHT "{}" RESET "\"",line));
+        log("DBG",TAG "[TERMINAL]" RESET "Processing command \"" HIGHLIGHT + line + RESET "\"");
     }
 }

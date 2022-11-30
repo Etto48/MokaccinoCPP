@@ -77,7 +77,7 @@ namespace network::udp
         }
         else
         {
-            logging::log("DBG",_format("Message keyword \"{}\" not recognized",keyword));
+            logging::log("DBG","Message keyword \""+keyword+"\" not recognized");
         }
     }
     void listener()
