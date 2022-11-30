@@ -51,7 +51,7 @@ namespace logging
     }
     void supervisor_log(size_t connections,size_t services)
     {
-        log("DBG",std::format(TAG "[SUPERVISOR]" RESET " connections:" HIGHLIGHT "{}" RESET " services:" HIGHLIGHT "{}" RESET,connections,services));
+        log("DBG",_format(TAG "[SUPERVISOR]" RESET " connections:" HIGHLIGHT "{}" RESET " services:" HIGHLIGHT "{}" RESET,connections,services));
     }
     void new_user_log(std::string name, const boost::asio::ip::udp::endpoint& endpoint)
     {
@@ -63,10 +63,10 @@ namespace logging
     }
     void connection_test_log(const network::MessageQueueItem& item)
     {
-        log("DBG",std::format(TAG "[CONNECTION]" RESET " Handled test message \"" HIGHLIGHT "{}" RESET "\" from " HIGHLIGHT "{}" RESET "@" HIGHLIGHT "{}" RESET ":" HIGHLIGHT "{}" RESET,item.msg,item.src,item.src_endpoint.address().to_string(),item.src_endpoint.port()));
+        log("DBG",_format(TAG "[CONNECTION]" RESET " Handled test message \"" HIGHLIGHT "{}" RESET "\" from " HIGHLIGHT "{}" RESET "@" HIGHLIGHT "{}" RESET ":" HIGHLIGHT "{}" RESET,item.msg,item.src,item.src_endpoint.address().to_string(),item.src_endpoint.port()));
     }
     void terminal_processing_log(const std::string& line)
     {
-        log("DBG",std::format(TAG "[TERMINAL]" RESET "Processing command \"" HIGHLIGHT "{}" RESET "\"",line));
+        log("DBG",_format(TAG "[TERMINAL]" RESET "Processing command \"" HIGHLIGHT "{}" RESET "\"",line));
     }
 }
