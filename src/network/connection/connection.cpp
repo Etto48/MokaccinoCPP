@@ -23,20 +23,20 @@ namespace network::connection
                 {
                     status_map[item.src_endpoint] = {"CONNECTED",args[1]};
                     udp::send(parsing::compose_message({"HANDSHAKE",username}),item.src_endpoint);
-                    logging::log("DBG",std::format("Handled CONNECT from {}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port()));
+                    logging::log("DBG",_format("Handled CONNECT from {}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port()));
                 }
                 else if(args[0] == "HANDSHAKE" && args.size() == 2 && status_map[item.src_endpoint].expected_message == "HANDSHAKE" && status_map[item.src_endpoint].name == args[1])
                 {
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     udp::send(parsing::compose_message({"CONNECTED",username}),item.src_endpoint);
-                    logging::log("DBG",std::format("Handled HANDSHAKE from {}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port()));
+                    logging::log("DBG",_format("Handled HANDSHAKE from {}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port()));
                 }
                 else if(args[0] == "CONNECTED" && args.size() == 2 && status_map[item.src_endpoint].expected_message == "CONNECTED" && status_map[item.src_endpoint].name == args[1])
                 {
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
-                    logging::log("DBG",std::format("Handled CONNECTED from {}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port()));
+                    logging::log("DBG",_format("Handled CONNECTED from {}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port()));
                 }
                 //REQUEST <to>
                 else if(args[0] == "REQUEST" && args.size() == 2)
@@ -51,7 +51,7 @@ namespace network::connection
                         udp::send(parsing::compose_message(
                             {"REQUESTED",
                             item.src,
-                            std::format("{}:{}",item.src_endpoint.address().to_string(),item.src_endpoint.port())}),
+                            item.src_endpoint.address().to_string()+':'+std::to_string(item.src_endpoint.port())}),
                             target.endpoint);
                     }
                 }
@@ -73,7 +73,7 @@ namespace network::connection
                 }
                 #endif
                 else {
-                    logging::log("DBG",std::format("Dropped {} from {}:{}",args[0],item.src_endpoint.address().to_string(),item.src_endpoint.port()));
+                    logging::log("DBG",_format("Dropped {} from {}:{}",args[0],item.src_endpoint.address().to_string(),item.src_endpoint.port()));
                 }
             }
         }

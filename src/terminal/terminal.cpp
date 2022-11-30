@@ -37,12 +37,12 @@ namespace terminal
                 try
                 {
                     auto endpoint = network::udp::dns_lookup(host,port_var);
-                    logging::log("DBG",std::format("Target found at {}:{}",endpoint.address().to_string(),endpoint.port()));
+                    logging::log("DBG",_format("Target found at {}:{}",endpoint.address().to_string(),endpoint.port()));
                     network::connection::connect(endpoint, host);
                 }catch(network::udp::LookupError)
                 {
                     std::cout << "Error resolving hostname" << std::endl;
-                    logging::log("DBG",std::format("{} not found",host));
+                    logging::log("DBG",_format("{} not found",host));
                     return false;
                 }
             }

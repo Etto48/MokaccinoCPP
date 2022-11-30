@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <format>
+#include <mutex>
 #include <stdint.h>
 #include <boost/asio/ip/udp.hpp>
 #include "../network/MessageQueue/MessageQueue.hpp"

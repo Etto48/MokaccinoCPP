@@ -12,6 +12,7 @@ namespace logging
     #define HIGHLIGHT "\033[35m"
     #define TAG "\033[36m"
     #define RESET "\033[0m"
+    std::mutex output_mutex;
     void log(std::string log_type,std::string message)
     {
         std::string terminal_prefix;
@@ -35,17 +36,18 @@ namespace logging
         }
         if(VERBOSITY >= verbosity_required)
         {
+            std::unique_lock lock(output_mutex);
             std::cout << terminal_prefix << message << std::endl;
         }
     }
     
     void message_log(std::string src, std::string message)
     {
-        log("DBG",std::format("Message from " HIGHLIGHT "{}" RESET " received: \"" HIGHLIGHT "{}" RESET "\"",src,message));
+        log("DBG",_format("Message from " HIGHLIGHT "{}" RESET " received: \"" HIGHLIGHT "{}" RESET "\"",src,message));
     }
     void new_thread_log(std::string thread_name)
     {
-        log("DBG",std::format("Thread " HIGHLIGHT "{}" RESET " started",thread_name));
+        log("DBG",_format("Thread " HIGHLIGHT "{}" RESET " started",thread_name));
     }
     void supervisor_log(size_t connections,size_t services)
     {
@@ -53,11 +55,11 @@ namespace logging
     }
     void new_user_log(std::string name, const boost::asio::ip::udp::endpoint& endpoint)
     {
-        log("DBG",std::format("User " HIGHLIGHT "{}" RESET ", (" HIGHLIGHT "{}" RESET ":" HIGHLIGHT "{}" RESET ") added",name,endpoint.address().to_string(),endpoint.port()));
+        log("DBG",_format("User " HIGHLIGHT "{}" RESET ", (" HIGHLIGHT "{}" RESET ":" HIGHLIGHT "{}" RESET ") added",name,endpoint.address().to_string(),endpoint.port()));
     }
     void removed_user_log(std::string name)
     {
-        log("DBG",std::format("User " HIGHLIGHT "{}" RESET " removed",name));
+        log("DBG",_format("User " HIGHLIGHT "{}" RESET " removed",name));
     }
     void connection_test_log(const network::MessageQueueItem& item)
     {
