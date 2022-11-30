@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13.0)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(Mokaccino)
 file(GLOB_RECURSE sources "src/*.cpp")
 
