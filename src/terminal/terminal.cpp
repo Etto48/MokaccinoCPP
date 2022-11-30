@@ -12,7 +12,7 @@ namespace terminal
             exit_called = true;
             return true;
         }
-        else if((args.size() == 3) && args[0] == "connect")
+        else if(args.size() == 3 && args[0] == "connect")
         {
             if(args[1] == "hostname")
             {
@@ -41,8 +41,7 @@ namespace terminal
                     network::connection::connect(endpoint, host);
                 }catch(network::udp::LookupError)
                 {
-                    std::cout << "Error resolving hostname" << std::endl;
-                    logging::log("DBG",host+" not found");
+                    logging::lookup_error_log(host);
                     return false;
                 }
             }
@@ -51,31 +50,39 @@ namespace terminal
                 try
                 {
                     network::udp::server_request(args[2]);
-                    std::cout << "Waiting for the other peer" << std::endl;
                 }catch(network::DataMap::NotFound)
                 {
-                    std::cout << "You are not connected to a suitable peer" << std::endl;
-                    logging::log("DBG","No server available");
+                    logging::no_server_available_log();
+                    return false;
                 }
             }
             return true;
         }
+        else if(args.size() == 3 && args[0] == "msg")
+        {
+            if(network::udp::connection_map.check_user(args[1]))
+            {
+                network::messages::send(args[1],args[2]);
+                return true;
+            }
+            else
+            {
+                logging::user_not_found_log(args[1]);
+                return false;
+            }
+        }
         else
         {
-            std::cout<<"Command not found"<<std::endl;
+            logging::command_not_found_log(line);
             return false;
         }
     }
+    
     void terminal()
     {
-        bool last_ret = true;
         while(!exit_called)
         {
-            if(last_ret)
-                std::cout << "\r\033[K\033[32mO\033[0m> ";
-            else
-                std::cout << "\r\033[K\033[31mX\033[0m> ";
-            std::cout.flush();
+            prompt();
             std::string line;
             std::getline(std::cin,line);
             if(line.size() > 0)

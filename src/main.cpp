@@ -6,6 +6,7 @@
 #include "logging/supervisor/supervisor.hpp"
 #include "terminal/terminal.hpp"
 #include "network/connection/connection.hpp"
+#include "network/messages/messages.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -30,13 +31,15 @@ int main(int argc, char* argv[])
         //INITIALIZATIONS
         logging::supervisor::init(60);
         network::udp::init(args["port"].as<uint16_t>());
-        network::connection::init("ettore");
+        network::connection::init("mokaccino.ddns.net");
+        network::messages::init();
         terminal::init();
         
         //tests
         #ifdef _DEBUG
         network::udp::send("TEST","loopback");
         terminal::process_command("connect hostname localhost");
+        network::messages::send("loopback","test message with spaces");
         #endif
 
         //WAIT FOR EXIT

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <boost/asio/ip/udp.hpp>
 #include "../network/MessageQueue/MessageQueue.hpp"
+#include "../terminal/prompt.hpp"
 namespace logging
 {
     void log(std::string log_type,std::string message);
@@ -17,4 +18,12 @@ namespace logging
     void removed_user_log(std::string name);
     void connection_test_log(const network::MessageQueueItem& item);
     void terminal_processing_log(const std::string& line);
+
+    void sent_text_message_log(const std::string& to, const std::string& msg);
+    void recieved_text_message_log(const std::string& from, const std::string& msg);
+
+    void user_not_found_log(const std::string& name);
+    void lookup_error_log(const std::string& host);
+    void no_server_available_log();
+    void command_not_found_log(const std::string& line);
 }

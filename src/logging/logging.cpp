@@ -2,7 +2,7 @@
 #ifdef _DEBUG 
     #define VERBOSITY 2
 #else
-    #define VERBOSITY 0
+    #define VERBOSITY 1
 #endif
 namespace logging
 {
@@ -37,7 +37,8 @@ namespace logging
         if(VERBOSITY >= verbosity_required)
         {
             std::unique_lock lock(output_mutex);
-            std::cout << terminal_prefix << message << std::endl;
+            std::cout << "\r\033[K" << terminal_prefix << message << std::endl;
+            terminal::prompt();
         }
     }
     
@@ -68,5 +69,35 @@ namespace logging
     void terminal_processing_log(const std::string& line)
     {
         log("DBG",TAG "[TERMINAL]" RESET "Processing command \"" HIGHLIGHT + line + RESET "\"");
+    }
+    
+    #define MESSAGE_PEER "\033[32m"
+    #define MESSAGE_TEXT "\033[30;1m"
+
+    void sent_text_message_log(const std::string& to, const std::string& msg)
+    {
+        log("MSG", MESSAGE_PEER + to + RESET " << " MESSAGE_TEXT + msg + RESET);
+    }
+    void recieved_text_message_log(const std::string& from, const std::string& msg)
+    {
+        log("MSG", MESSAGE_PEER + from + RESET " >> " MESSAGE_TEXT + msg + RESET);
+    }
+
+
+    void user_not_found_log(const std::string& name)
+    {
+        log("ERR","User " HIGHLIGHT + name + RESET " is not connected");
+    }
+    void lookup_error_log(const std::string& host)
+    {
+        log("ERR","Hostname " HIGHLIGHT + host + RESET " not found");
+    }
+    void no_server_available_log()
+    {
+        log("ERR","You are not connected to any peer");
+    }
+    void command_not_found_log(const std::string& line)
+    {
+        log("ERR","Command \"" HIGHLIGHT + line + RESET "\" not found");
     }
 }

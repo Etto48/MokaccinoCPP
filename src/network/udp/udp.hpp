@@ -7,11 +7,11 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/array.hpp>
 #include <boost/date_time.hpp>
+#include "DataMap/DataMap.hpp"
 #include "../../multithreading/multithreading.hpp"
 #include "../../logging/logging.hpp"
 #include "../../parsing/parsing.hpp"
 #include "../MessageQueue/MessageQueue.hpp"
-#include "DataMap/DataMap.hpp"
 namespace network::udp
 {
     extern DataMap connection_map;

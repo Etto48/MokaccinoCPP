@@ -43,8 +43,8 @@ namespace parsing
             else
             {
                 current += c;
+                escape = false;
             }
-            escape = false;
         }
         if(current.length() > 0)
         {
