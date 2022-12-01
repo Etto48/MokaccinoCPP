@@ -16,32 +16,16 @@ namespace terminal
         {
             if(args[1] == "hostname")
             {
-                std::string host, port = DEFAULT_PORT_STR;
-                uint16_t port_var = DEFAULT_PORT;
-                if(args[2].find(':') != std::string::npos)
-                {
-                    host = args[2].substr(0,args[2].find(':'));
-                    port = args[2].substr(args[2].find(':')+1,args[2].length()-host.length()-1);
-                }
-                else
-                {
-                    host = args[2];
-                }
-                try{
-                    port_var = std::stoi(port);
-                }catch(std::exception&)
-                {
-                    port_var = DEFAULT_PORT;
-                }
-
                 try
                 {
-                    auto endpoint = network::udp::dns_lookup(host,port_var);
+                    auto endpoint_hostname = parsing::endpoint_from_hostname(args[2]);
+                    auto endpoint = endpoint_hostname.first;
+                    auto host = endpoint_hostname.second;
                     logging::log("DBG","Target found at "+endpoint.address().to_string()+":"+std::to_string(endpoint.port()));
                     network::connection::connect(endpoint, host);
                 }catch(network::udp::LookupError)
                 {
-                    logging::lookup_error_log(host);
+                    logging::lookup_error_log(args[2]);
                     return false;
                 }
             }

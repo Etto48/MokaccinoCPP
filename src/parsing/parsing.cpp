@@ -119,4 +119,27 @@ namespace parsing
         }
         return ret;
     }
+    std::pair<boost::asio::ip::udp::endpoint,std::string> endpoint_from_hostname(const std::string& str)
+    {
+        std::string host, port = DEFAULT_PORT_STR;
+        uint16_t port_var = DEFAULT_PORT;
+        if(str.find(':') != std::string::npos)
+        {
+            host = str.substr(0,str.find(':'));
+            port = str.substr(str.find(':')+1,str.length()-host.length()-1);
+        }
+        else
+        {
+            host = str;
+        }
+        try{
+            port_var = std::stoi(port);
+        }catch(std::exception&)
+        {
+            port_var = DEFAULT_PORT;
+        }
+
+        auto endpoint = network::udp::dns_lookup(host,port_var);
+        return {endpoint,host};
+    }
 }

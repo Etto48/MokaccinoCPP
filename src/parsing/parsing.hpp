@@ -2,7 +2,10 @@
 #include "../defines.hpp"
 #include <string>
 #include <vector>
+#include <tuple>
 #include <boost/asio/ip/udp.hpp>
+#include "../network/udp/udp.hpp"
+
 namespace parsing
 {
     /**
@@ -55,4 +58,12 @@ namespace parsing
      * @return the string made of the tokens and escaped
      */
     std::string compose_message(const std::vector<std::string>& components);
+    /**
+     * @brief convert a string like hostname[:port] into a boost endpoint
+     * doing a DNS lookup, if it fails to resolve throws udp::LookupError
+     * 
+     * @param str string to convert
+     * @return (enpoint, hostname)
+     */
+    std::pair<boost::asio::ip::udp::endpoint,std::string> endpoint_from_hostname(const std::string& str);
 }

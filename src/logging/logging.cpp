@@ -68,7 +68,7 @@ namespace logging
     }
     void terminal_processing_log(const std::string& line)
     {
-        log("DBG",TAG "[TERMINAL]" RESET "Processing command \"" HIGHLIGHT + line + RESET "\"");
+        log("DBG",TAG "[TERMINAL]" RESET " Processing command \"" HIGHLIGHT + line + RESET "\"");
     }
     
     #define MESSAGE_PEER "\033[32m"
@@ -114,5 +114,15 @@ namespace logging
     void command_not_found_log(const std::string& line)
     {
         log("ERR","Command \"" HIGHLIGHT + line + RESET "\" not found");
+    }
+    void config_not_found_log(const std::string& path)
+    {
+        log("ERR","Config file \"" HIGHLIGHT + path + RESET "\" not found");
+    }
+    void config_error_log(const toml::parse_error& e)
+    {
+        log("ERR","Config file parsing error:");
+        log("ERR",std::string("\t") + e.what());
+        log("ERR",std::string("\t") + (*e.source().path) + " (" + std::to_string(e.source().begin.line) + ", " + std::to_string(e.source().begin.column) + ")");
     }
 }

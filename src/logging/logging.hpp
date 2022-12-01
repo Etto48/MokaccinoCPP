@@ -7,6 +7,8 @@
 #include <boost/asio/ip/udp.hpp>
 #include "../network/MessageQueue/MessageQueue.hpp"
 #include "../terminal/prompt.hpp"
+
+#include "../toml.hpp"
 namespace logging
 {
     /**
@@ -35,4 +37,6 @@ namespace logging
     void lookup_error_log(const std::string& host);
     void no_server_available_log();
     void command_not_found_log(const std::string& line);
+    void config_not_found_log(const std::string& path);
+    void config_error_log(const toml::parse_error& e);
 }
