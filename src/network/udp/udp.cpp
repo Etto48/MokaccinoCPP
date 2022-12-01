@@ -18,20 +18,6 @@ namespace network::udp
     std::mutex requested_clients_mutex;
     std::map<std::string,boost::posix_time::ptime> requested_clients;
 
-    void init(uint16_t port)
-    {
-        local_endpoint = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("0.0.0.0"),port);
-        socket.open(IP_VERSION);
-        socket.bind(local_endpoint);
-
-        multithreading::add_service("network_udp_listener",listener); 
-        auto localhost = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"),port);
-
-        #ifdef _DEBUG
-        connection_map.add_user("loopback",localhost);
-        #endif
-    }
-
     bool send(std::string message, const std::string& name)
     {
         try{
@@ -111,6 +97,19 @@ namespace network::udp
                 handle_message("",sender_endpoint,recv_data);
             }
         }
+    }
+    void init(uint16_t port)
+    {
+        local_endpoint = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("0.0.0.0"),port);
+        socket.open(IP_VERSION);
+        socket.bind(local_endpoint);
+
+        multithreading::add_service("network_udp_listener",listener); 
+        auto localhost = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"),port);
+
+        #ifdef _DEBUG
+        connection_map.add_user("loopback",localhost);
+        #endif
     }
     void register_queue(std::string keyword, MessageQueue& queue, bool connection_required)
     {

@@ -13,6 +13,10 @@ set(Boost_DEBUG OFF)
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
 add_compile_definitions(_WIN32_WINNT=0x0601)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(_DEBUG)
+endif()
+
 include_directories(${Boost_INCLUDE_DIRS}) 
 link_libraries(${Boost_LIBRARIES})
 add_executable(Mokaccino ${sources})
