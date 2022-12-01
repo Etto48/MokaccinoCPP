@@ -82,11 +82,26 @@ namespace logging
     {
         log("MSG", MESSAGE_PEER + from + RESET " >> " MESSAGE_TEXT + msg + RESET);
     }
+    void received_disconnect_log(const std::string& name, const std::string& reason)
+    {
+        std::string output = "User " HIGHLIGHT+name+RESET " disconnected";
+        if(reason.length()>0)
+            output += ", reason " HIGHLIGHT+reason;
+        log("MSG", output);
+    }
+    void sent_disconnect_log(const std::string& name)
+    {
+        log("MSG", "Disconnected from " HIGHLIGHT + name + RESET);
+    }
 
 
     void user_not_found_log(const std::string& name)
     {
         log("ERR","User " HIGHLIGHT + name + RESET " is not connected");
+    }
+    void user_lookup_error_log(const std::string& name)
+    {
+        log("ERR","User " HIGHLIGHT + name + RESET " not found");
     }
     void lookup_error_log(const std::string& host)
     {

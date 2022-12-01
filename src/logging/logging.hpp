@@ -9,6 +9,12 @@
 #include "../terminal/prompt.hpp"
 namespace logging
 {
+    /**
+     * @brief print something on the screen
+     * 
+     * @param log_type one of "ERR" "MSG" "DBG"
+     * @param message the text to print
+     */
     void log(std::string log_type,std::string message);
     
     void message_log(std::string src, std::string message);
@@ -21,8 +27,11 @@ namespace logging
 
     void sent_text_message_log(const std::string& to, const std::string& msg);
     void recieved_text_message_log(const std::string& from, const std::string& msg);
+    void received_disconnect_log(const std::string& name, const std::string& reason);
+    void sent_disconnect_log(const std::string& name);
 
     void user_not_found_log(const std::string& name);
+    void user_lookup_error_log(const std::string& name);
     void lookup_error_log(const std::string& host);
     void no_server_available_log();
     void command_not_found_log(const std::string& line);

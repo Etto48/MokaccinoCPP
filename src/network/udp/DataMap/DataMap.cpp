@@ -74,6 +74,7 @@ namespace network
     bool DataMap::remove_user(const boost::asio::ip::udp::endpoint& endpoint)
     {
         std::unique_lock lock(obj);
+        logging::removed_user_log(endpoint_name[endpoint]);
         return _remove_user(endpoint);
     }
     size_t DataMap::size()

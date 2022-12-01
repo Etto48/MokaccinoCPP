@@ -38,6 +38,14 @@ namespace network::connection
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     logging::log("DBG","Handled CONNECTED from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
                 }
+                else if(args[0] == "DISCONNECT" && args.size() >= 2 && args.size() <= 3)
+                {
+                    std::string reason;
+                    if(args.size() == 3)
+                        reason = args[2];
+                    logging::received_disconnect_log(item.src,reason);
+                    udp::connection_map.remove_user(item.src);
+                }
                 //REQUEST <to>
                 else if(args[0] == "REQUEST" && args.size() == 2)
                 {
@@ -58,13 +66,16 @@ namespace network::connection
                 //REQUESTED <from> <at>
                 else if(args[0] == "REQUESTED" && args.size() == 3 && !udp::connection_map.check_user(args[1]) && udp::connection_map.server() == item.src_endpoint)
                 {
-                    
                     try{
                         auto endpoint = parsing::endpoint_from_str(args[2]);
                         status_map[endpoint] = {"HANDSHAKE",args[1]};
                         udp::send(parsing::compose_message({"CONNECT",username}),endpoint);
                     }catch(parsing::EndpointFromStrError&)
                     {}
+                }
+                else if(args[0] == "FAIL" && args.size() == 2)
+                {
+                    
                 }
                 #ifdef _DEBUG
                 else if(args[0] == "TEST")
@@ -84,8 +95,10 @@ namespace network::connection
         udp::register_queue("CONNECT",connection_queue,false);
         udp::register_queue("HANDSHAKE",connection_queue,false);
         udp::register_queue("CONNECTED",connection_queue,false);
+        udp::register_queue("DISCONNECT",connection_queue,true);
         udp::register_queue("REQUEST",connection_queue,true);
         udp::register_queue("REQUESTED",connection_queue,true);
+        udp::register_queue("FAIL",connection_queue,true);
         #ifdef _DEBUG
         udp::register_queue("TEST",connection_queue,true);
         #endif

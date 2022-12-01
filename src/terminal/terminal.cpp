@@ -58,6 +58,21 @@ namespace terminal
             }
             return true;
         }
+        else if(args.size() == 2 && args[0] == "disconnect")
+        {
+            if(network::udp::connection_map.check_user(args[1]))
+            {
+                network::udp::send(parsing::compose_message({"DISCONNECT","connection closed"}),args[1]);
+                network::udp::connection_map.remove_user(args[1]);
+                logging::sent_disconnect_log(args[1]);
+                return true;
+            }
+            else
+            {
+                logging::user_not_found_log(args[1]);
+                return false;
+            }
+        }
         else if(args.size() == 3 && args[0] == "msg")
         {
             if(network::udp::connection_map.check_user(args[1]))

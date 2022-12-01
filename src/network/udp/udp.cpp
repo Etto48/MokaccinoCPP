@@ -151,4 +151,12 @@ namespace network::udp
         }
         send(parsing::compose_message({"REQUEST",name}),connection_map.server());
     }
+    void server_request_fail(const std::string& name)
+    {
+        {
+            std::unique_lock lock(requested_clients_mutex);
+            requested_clients.erase(name);
+        }
+        logging::user_lookup_error_log(name);
+    }
 }

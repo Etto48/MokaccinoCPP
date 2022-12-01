@@ -6,6 +6,11 @@
 
 namespace network
 {
+    /**
+     * @brief this struct contains source username ("" if not logged),
+     * source endpoint and message content
+     * 
+     */
     struct MessageQueueItem
     {   
         std::string src;
