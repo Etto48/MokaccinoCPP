@@ -86,7 +86,7 @@ namespace logging
     {
         std::string output = "User " HIGHLIGHT+name+RESET " disconnected";
         if(reason.length()>0)
-            output += ", reason " HIGHLIGHT+reason;
+            output += ", reason " HIGHLIGHT+reason+RESET;
         log("MSG", output);
     }
     void sent_disconnect_log(const std::string& name)

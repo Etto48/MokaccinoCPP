@@ -38,11 +38,11 @@ namespace network::connection
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     logging::log("DBG","Handled CONNECTED from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
                 }
-                else if(args[0] == "DISCONNECT" && args.size() >= 2 && args.size() <= 3)
+                else if(args[0] == "DISCONNECT" && args.size() >= 1 && args.size() <= 2)
                 {
                     std::string reason;
-                    if(args.size() == 3)
-                        reason = args[2];
+                    if(args.size() == 2)
+                        reason = args[1];
                     logging::received_disconnect_log(item.src,reason);
                     udp::connection_map.remove_user(item.src);
                 }
