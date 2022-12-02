@@ -7,8 +7,11 @@
 #include "terminal/terminal.hpp"
 #include "network/connection/connection.hpp"
 #include "network/messages/messages.hpp"
+#include "audio/audio.hpp"
 
 #include "toml.hpp"
+
+bool DEBUG = false;
 
 int main(int argc, char* argv[])
 {
@@ -26,8 +29,12 @@ int main(int argc, char* argv[])
             "print help message")
         ("port,p",boost::program_options::value<uint16_t>()->default_value(DEFAULT_PORT)->value_name("port"),
             "set a custom port for network communications")
-        ("username",boost::program_options::value(&username),
-            "select a username");
+        ("username,u",boost::program_options::value(&username)->value_name("username"),
+            "select a username")
+        ("config,c",boost::program_options::value<std::string>()->default_value(CONFIG_PATH)->value_name("config location"),
+            "specify the path of the config file")
+        ("debug",boost::program_options::bool_switch(&DEBUG),
+            "enable debug messages and tests");
     boost::program_options::store(boost::program_options::parse_command_line(argc,argv,desc),args);
     boost::program_options::notify(args);
     if(args.count("help"))
@@ -36,22 +43,37 @@ int main(int argc, char* argv[])
     }
     else
     {
+        #ifdef _DEBUG
+            DEBUG = true;
+        #endif
         //LOAD CONFIG
         toml::table config;
+        bool config_loaded = false;
         try{
-            config = toml::parse_file(CONFIG_PATH);
+            config = toml::parse_file(args["config"].as<std::string>());
+            logging::config_success_log(args["config"].as<std::string>());
+            config_loaded = true;
         }catch(const toml::parse_error& e)
         {
             if(std::string(e.what()) == "File could not be opened for reading")
             {
-                logging::config_not_found_log(CONFIG_PATH);
+                logging::config_not_found_log(args["config"].as<std::string>());
             }
             else
             {
                 logging::config_error_log(e);
+                return -1;
             }
-            return -1;
         }
+        
+        if(!config_loaded && username.length() == 0)
+        {
+            std::cout << "\r\033[KUsername: ";
+            std::cout.flush();
+            std::cin >> username;
+            logging::log("MSG","Consider providing a config file in \"" + args["config"].as<std::string>() + "\"");
+        }
+
 
         //INITIALIZATIONS
         logging::supervisor::init(60);
@@ -59,25 +81,30 @@ int main(int argc, char* argv[])
         network::connection::init(config["network"]["username"].value_or(username));
         network::messages::init();
         terminal::init();
+        audio::init();
         
-        auto autoconnect_peers_config = *config["network"]["autoconnect"].as_array();
-        for(auto&& p : autoconnect_peers_config)
-        {
-            if(p.is_string())
+        auto autoconnect_peers_config = config["network"]["autoconnect"].as_array();
+        if(autoconnect_peers_config != nullptr) 
+        {// if autoconnect was defined in the config
+            for(auto&& p : *autoconnect_peers_config)
             {
-                auto peer_address = p.value_or(std::string{});
-                auto endpoint_host = parsing::endpoint_from_hostname(peer_address);
-                network::connection::connect(endpoint_host.first,endpoint_host.second);
+                if(p.is_string())
+                {
+                    auto peer_address = p.value_or(std::string{});
+                    auto endpoint_host = parsing::endpoint_from_hostname(peer_address);
+                    network::connection::connect(endpoint_host.first,endpoint_host.second);
+                }
             }
         }
 
         
         //tests
-        #ifdef _DEBUG
-        network::udp::send("TEST","loopback");
-        terminal::process_command("connect hostname localhost");
-        network::messages::send("loopback","test message with spaces");
-        #endif
+        if(DEBUG)
+        {
+            network::udp::send("TEST","loopback");
+            terminal::process_command("connect hostname localhost");
+            network::messages::send("loopback","test message with spaces");
+        }
 
         //WAIT FOR EXIT
         multithreading::wait_termination();

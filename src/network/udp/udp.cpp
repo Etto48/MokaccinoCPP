@@ -45,7 +45,10 @@ namespace network::udp
     void handle_message(const std::string& name,const boost::asio::ip::udp::endpoint& endpoint, std::string msg)
     {
         msg.pop_back();//remove '\n'
-        logging::message_log(name,msg);
+        if(name.length() == 0)
+            logging::message_log(endpoint.address().to_string() + ":" + std::to_string(endpoint.port()),msg);
+        else
+            logging::message_log(name,msg);
         
         auto keyword = parsing::get_msg_keyword(msg);
 
@@ -66,7 +69,7 @@ namespace network::udp
             logging::log("DBG","Message keyword \""+keyword+"\" not recognized");
         }
     }
-    void listener()
+    void udp_listener()
     {
         while(true)
         {
@@ -104,12 +107,11 @@ namespace network::udp
         socket.open(IP_VERSION);
         socket.bind(local_endpoint);
 
-        multithreading::add_service("network_udp_listener",listener); 
+        multithreading::add_service("udp_listener",udp_listener); 
         auto localhost = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"),port);
 
-        #ifdef _DEBUG
-        connection_map.add_user("loopback",localhost);
-        #endif
+        if(DEBUG)
+            connection_map.add_user("loopback",localhost);
     }
     void register_queue(std::string keyword, MessageQueue& queue, bool connection_required)
     {

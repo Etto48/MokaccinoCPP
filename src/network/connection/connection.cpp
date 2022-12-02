@@ -10,7 +10,7 @@ namespace network::connection
     };
     std::mutex status_map_mutex;
     std::map<boost::asio::ip::udp::endpoint,StatusEntry> status_map;
-    void connection_handler()
+    void connection()
     {
         while(true)
         {
@@ -77,12 +77,10 @@ namespace network::connection
                 {
                     
                 }
-                #ifdef _DEBUG
-                else if(args[0] == "TEST")
+                else if(DEBUG && args[0] == "TEST")
                 {
                     logging::connection_test_log(item);
                 }
-                #endif
                 else {
                     logging::log("DBG","Dropped "+ args[0] +" from "+ item.src_endpoint.address().to_string() +":"+ std::to_string(item.src_endpoint.port()));
                 }
@@ -99,10 +97,9 @@ namespace network::connection
         udp::register_queue("REQUEST",connection_queue,true);
         udp::register_queue("REQUESTED",connection_queue,true);
         udp::register_queue("FAIL",connection_queue,true);
-        #ifdef _DEBUG
-        udp::register_queue("TEST",connection_queue,true);
-        #endif
-        multithreading::add_service("connection_handler",connection_handler);
+        if(DEBUG)
+            udp::register_queue("TEST",connection_queue,true);
+        multithreading::add_service("connection",connection);
     }
     void connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name)
     {

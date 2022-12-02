@@ -11,6 +11,8 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 set(Boost_DEBUG OFF)
 
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
+find_package(portaudio REQUIRED)
+
 add_compile_definitions(_WIN32_WINNT=0x0601)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -18,5 +20,5 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 include_directories(${Boost_INCLUDE_DIRS}) 
-link_libraries(${Boost_LIBRARIES})
+link_libraries(${Boost_LIBRARIES} portaudio_static)
 add_executable(Mokaccino ${sources})

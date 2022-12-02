@@ -48,4 +48,10 @@ namespace multithreading
      * 
      */
     void wait_termination();
+    /**
+     * @brief get the current thread name as registered in add_service
+     * 
+     * @return the thread name
+     */
+    std::string get_current_thread_name();
 }

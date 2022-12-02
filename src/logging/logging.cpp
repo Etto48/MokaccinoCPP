@@ -1,9 +1,4 @@
 #include "logging.hpp"
-#ifdef _DEBUG 
-    #define VERBOSITY 2
-#else
-    #define VERBOSITY 1
-#endif
 namespace logging
 {
     #define ERR_TAG "\033[31m"
@@ -15,6 +10,7 @@ namespace logging
     std::mutex output_mutex;
     void log(std::string log_type,std::string message)
     {
+        unsigned int verbosity = DEBUG? 2 : 1;
         std::string terminal_prefix;
         std::string file_prefix;
         unsigned int verbosity_required = 0;
@@ -31,10 +27,10 @@ namespace logging
         }else if(log_type == "DBG")
         {
             file_prefix = "[DEBUG] ";
-            terminal_prefix = DBG_TAG "[DEBUG]" RESET " ";
+            terminal_prefix = DBG_TAG "[DEBUG]" RESET " " TAG "[" + multithreading::get_current_thread_name() + "]" RESET " ";
             verbosity_required = 2;
         }
-        if(VERBOSITY >= verbosity_required)
+        if(verbosity >= verbosity_required)
         {
             std::unique_lock lock(output_mutex);
             std::cout << "\r\033[K" << terminal_prefix << message << std::endl;
@@ -44,31 +40,35 @@ namespace logging
     
     void message_log(std::string src, std::string message)
     {
-        log("DBG","Message from " HIGHLIGHT + src + RESET " received: \"" HIGHLIGHT + message + RESET "\"");
+        log("DBG", "Message from " HIGHLIGHT + src + RESET " received: \"" HIGHLIGHT + message + RESET "\"");
     }
     void new_thread_log(std::string thread_name)
     {
-        log("DBG","Thread " HIGHLIGHT + thread_name + RESET " started");
+        log("DBG", "Thread " HIGHLIGHT + thread_name + RESET " started");
     }
     void supervisor_log(size_t connections,size_t services)
     {
-        log("DBG",TAG "[SUPERVISOR]" RESET " connections:" HIGHLIGHT + std::to_string(connections) + RESET " services:" HIGHLIGHT + std::to_string(services) + RESET);
+        log("DBG", "connections:" HIGHLIGHT + std::to_string(connections) + RESET " services:" HIGHLIGHT + std::to_string(services) + RESET);
     }
     void new_user_log(std::string name, const boost::asio::ip::udp::endpoint& endpoint)
     {
-        log("DBG","User " HIGHLIGHT + name + RESET ", (" HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET ") added");
+        log("DBG", "User " HIGHLIGHT + name + RESET ", (" HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET ") added");
     }
     void removed_user_log(std::string name)
     {
-        log("DBG","User " HIGHLIGHT + name + RESET " removed");
+        log("DBG", "User " HIGHLIGHT + name + RESET " removed");
     }
     void connection_test_log(const network::MessageQueueItem& item)
     {
-        log("DBG",TAG "[CONNECTION]" RESET " Handled test message \"" HIGHLIGHT + item.msg + RESET "\" from " HIGHLIGHT + item.src + RESET "@" HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
+        log("DBG", "Handled test message \"" HIGHLIGHT + item.msg + RESET "\" from " HIGHLIGHT + item.src + RESET "@" HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
     }
     void terminal_processing_log(const std::string& line)
     {
-        log("DBG",TAG "[TERMINAL]" RESET " Processing command \"" HIGHLIGHT + line + RESET "\"");
+        log("DBG", "Processing command \"" HIGHLIGHT + line + RESET "\"");
+    }
+    void config_success_log(const std::string& path)
+    {
+        log("DBG", "Config file loaded from \"" HIGHLIGHT + path + RESET "\"");
     }
     
     #define MESSAGE_PEER "\033[32m"

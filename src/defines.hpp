@@ -4,3 +4,5 @@
 #define DEFAULT_PORT 23232
 #define DEFAULT_PORT_STR "23232"
 #define CONFIG_PATH "./mokaccino.cfg"
+
+extern bool DEBUG;

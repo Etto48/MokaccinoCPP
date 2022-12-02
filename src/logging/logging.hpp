@@ -7,6 +7,7 @@
 #include <boost/asio/ip/udp.hpp>
 #include "../network/MessageQueue/MessageQueue.hpp"
 #include "../terminal/prompt.hpp"
+#include "../multithreading/multithreading.hpp"
 
 #include "../toml.hpp"
 namespace logging
@@ -26,6 +27,7 @@ namespace logging
     void removed_user_log(std::string name);
     void connection_test_log(const network::MessageQueueItem& item);
     void terminal_processing_log(const std::string& line);
+    void config_success_log(const std::string& path);
 
     void sent_text_message_log(const std::string& to, const std::string& msg);
     void recieved_text_message_log(const std::string& from, const std::string& msg);

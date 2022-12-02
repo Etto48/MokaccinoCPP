@@ -15,7 +15,7 @@
 namespace network::udp
 {
     /**
-     * @brief contains every connection to another peer (if _DEBUG is defined it contains even a "loopback" connection)
+     * @brief contains every connection to another peer (if DEBUG is set it contains even a "loopback" connection)
      * 
      */
     extern DataMap connection_map;

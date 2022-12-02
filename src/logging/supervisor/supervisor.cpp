@@ -12,9 +12,10 @@ namespace logging::supervisor
     }
     void init(unsigned int timeout_seconds)
     {
-        #ifdef _DEBUG
-        sleep_time = timeout_seconds;
-        multithreading::add_service("supervisor",supervisor);
-        #endif
+        if(DEBUG)
+        {
+            sleep_time = timeout_seconds;
+            multithreading::add_service("supervisor",supervisor);
+        }
     }
 }
