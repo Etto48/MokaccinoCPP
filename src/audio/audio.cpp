@@ -2,76 +2,72 @@
 #include <portaudio.h>
 namespace audio
 {
+    network::MessageQueue audio_queue;
+    std::mutex name_mutex;
+    std::string pending_name;
+    std::string audio_name;
+    
+
     void audio()
     {
-        
-        auto err = Pa_Initialize();
-        if(err!=paNoError)
-        {
-            logging::log("ERR",Pa_GetErrorText(err));
-            return;
-        }
-
-        
-        auto input_device = Pa_GetDefaultInputDevice();
-        if(input_device == paNoDevice)
-        {
-            logging::log("ERR","No input device found");
-            return;
-        }
-        auto output_device = Pa_GetDefaultOutputDevice();
-        if(output_device == paNoDevice)
-        {
-            logging::log("ERR","No output device found");
-            return;
-        }
-
-        auto input = Pa_GetDeviceInfo(input_device);
-        auto output = Pa_GetDeviceInfo(output_device);
-
-        logging::log("DBG",std::string("Audio input device: ") + input->name + ", latency: " + std::to_string(input->defaultLowInputLatency));
-        logging::log("DBG",std::string("Audio output device: ") + output->name + ", latency: " + std::to_string(input->defaultLowOutputLatency));
-
-        PaStream* input_stream;
-        PaStream* output_stream;
-        PaStreamParameters input_params;
-        input_params.channelCount = 1;
-        input_params.device = input_device;
-        input_params.hostApiSpecificStreamInfo = nullptr;
-        input_params.sampleFormat = paInt32;
-        input_params.suggestedLatency = input->defaultLowInputLatency;
-        PaStreamParameters output_params;
-        output_params.channelCount = 1;
-        output_params.device = output_device;
-        output_params.hostApiSpecificStreamInfo = nullptr;
-        output_params.sampleFormat = paInt32;
-        output_params.suggestedLatency = output->defaultLowOutputLatency;
-
-        constexpr unsigned long FRAMES_PER_BUFFER = 16;
-
-        Pa_OpenStream(&input_stream,&input_params,nullptr,44100,FRAMES_PER_BUFFER,0,nullptr,nullptr);
-        Pa_OpenStream(&output_stream,nullptr,&output_params,44100,FRAMES_PER_BUFFER,0,nullptr,nullptr);
-
-        Pa_StartStream(input_stream);
-        Pa_StartStream(output_stream);
-
-
-        int32_t read_buffer[FRAMES_PER_BUFFER];
         while(true)
         {
-            Pa_ReadStream(input_stream,read_buffer,FRAMES_PER_BUFFER);
-            Pa_WriteStream(output_stream,read_buffer,FRAMES_PER_BUFFER);
-        }
-        
-        Pa_StopStream(input_stream);
-        Pa_StopStream(output_stream);
+            auto item = audio_queue.pull();
+            auto args = parsing::msg_split(item.msg);
+            std::unique_lock lock(name_mutex);
+            if(args.size() == 1 && args[0] == "AUDIOSTART")
+            {
+                if(audio_name.length() == 0)
+                {//no user connected for voice
+                    network::udp::send(parsing::compose_message({"AUDIOACCEPT"}),item.src_endpoint);
+                    //start sending AUDIO
+                }else
+                {//user already connected for voice
+                    network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
+                }
+            }else if(args.size() == 1 && args[0] == "AUDIOACCEPT" && pending_name == item.src && audio_name.length()==0)
+            {
+                audio_name = item.src;
+                pending_name = "";
 
-        Pa_CloseStream(input_stream);
-        Pa_CloseStream(output_stream);
-        Pa_Terminate();
+                //start sending AUDIO
+            }else if(args.size() == 1 && args[0] == "AUDIOSTOP" && (audio_name == item.src || pending_name == item.src))
+            {
+                audio_name = "";
+                pending_name = "";
+            }else if(args.size() == 2 && args[0] == "AUDIO" && audio_name == item.src)
+            {
+
+            }else
+            {
+                logging::log("DBG","Dropped "+ args[0] +" from "+ item.src_endpoint.address().to_string() +":"+ std::to_string(item.src_endpoint.port()));
+            }
+        }
     }
     void init()
     {
-        //multithreading::add_service("audio",audio);
+        network::udp::register_queue("AUDIOSTART",audio_queue,true);
+        network::udp::register_queue("AUDIOACCEPT",audio_queue,true);
+        network::udp::register_queue("AUDIOSTOP",audio_queue,true);
+        network::udp::register_queue("AUDIO",audio_queue,true);
+        multithreading::add_service("audio",audio);
+    }
+    void start_call(const std::string& name)
+    {
+        std::unique_lock lock(name_mutex);
+        if(audio_name.length() == 0)
+        {
+            pending_name = name;
+            network::udp::send(parsing::compose_message({"AUDIOSTART"}),name);
+        }
+    }
+    void stop_call()
+    {
+        std::unique_lock lock(name_mutex);
+        if(audio_name.length() != 0)
+        {
+            audio_name = "";
+            network::udp::send(parsing::compose_message({"AUDIOSTOP"}),audio_name);
+        }
     }
 }

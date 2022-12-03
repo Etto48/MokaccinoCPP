@@ -14,11 +14,11 @@ Mokaccino is a simple P2P application written in C++ capable of creating unstruc
 
 You will need both Boost and PortAudio compiled and installed where Cmake can find them
 
-Then you can run the following commands
+Then you can run the following commands inside the project directory
 ```shell
-MokaccinoCPP> mkdir build
-MokaccinoCPP> cmake -B build
-MokaccinoCPP> cmake --build build [--config Release]
+mkdir build
+cmake -B build
+cmake --build build [--config Release]
 ```
 ## Configuration
 
@@ -91,3 +91,23 @@ If you want to send a text message with a user you are connected to
 A to B: `MSG <message> [additional data]`
 
 Additional data may be provided but by default is ignored
+
+### Voice calls
+
+You can request a voice call with another peer with
+
+A to B: `AUDIOSTART`
+
+If the other peer accepts
+
+B to A: `AUDIOACCEPT`
+
+Or if it refuses
+
+B to A: `AUDIOSTOP`
+
+This message can be also sent at any time to end the call
+
+The audio data will be sent with the following format
+
+`AUDIO <data encoded base64>`
