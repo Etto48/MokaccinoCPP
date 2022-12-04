@@ -27,7 +27,7 @@ jobs:
         git clone https://github.com/PortAudio/portaudio.git
         cd portaudio
         mkdir build
-        cmake -B build -D PA_LIBNAME_ADD_SUFFIX=ON
+        cmake -B build -D PA_LIBNAME_ADD_SUFFIX=ON -D PA_BUILD_STATIC=ON
         cmake --build build --config Release
         sudo cmake --install build
     
