@@ -1,17 +1,11 @@
 #pragma once
-#include "../../defines.hpp"
 #include <stdint.h>
+#include "DataMap/DataMap.hpp"
 #include <string>
 #include <exception>
 #include <boost/asio/ip/udp.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/array.hpp>
-#include <boost/date_time.hpp>
-#include "DataMap/DataMap.hpp"
-#include "../../multithreading/multithreading.hpp"
-#include "../../logging/logging.hpp"
-#include "../../parsing/parsing.hpp"
 #include "../MessageQueue/MessageQueue.hpp"
+
 namespace network::udp
 {
     /**

@@ -1,4 +1,6 @@
 #include "parsing.hpp"
+#include "../defines.hpp"
+#include "../network/udp/udp.hpp"
 #ifndef MSG_SPLITTING_CHAR
     #define MSG_SPLITTING_CHAR ' '
 #endif

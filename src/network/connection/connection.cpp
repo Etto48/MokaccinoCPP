@@ -1,4 +1,11 @@
 #include "connection.hpp"
+#include "../../defines.hpp"
+#include <map>
+#include "../../multithreading/multithreading.hpp"
+#include "../../parsing/parsing.hpp"
+#include "../../logging/logging.hpp"
+#include "../udp/udp.hpp"
+#include "../MessageQueue/MessageQueue.hpp"
 namespace network::connection
 {
     MessageQueue connection_queue;

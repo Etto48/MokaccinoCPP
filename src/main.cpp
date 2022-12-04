@@ -1,14 +1,15 @@
 #include "defines.hpp"
 #include <iostream>
 #include <boost/program_options.hpp>
-#include "network/udp/udp.hpp"
 #include "multithreading/multithreading.hpp"
 #include "logging/supervisor/supervisor.hpp"
+#include "logging/logging.hpp"
 #include "terminal/terminal.hpp"
 #include "network/connection/connection.hpp"
 #include "network/messages/messages.hpp"
+#include "network/udp/udp.hpp"
+#include "parsing/parsing.hpp"
 #include "audio/audio.hpp"
-
 #include "toml.hpp"
 
 bool DEBUG = false;

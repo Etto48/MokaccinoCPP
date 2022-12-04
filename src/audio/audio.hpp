@@ -1,14 +1,11 @@
 #pragma once
-#include <iostream>
-#include <mutex>
-#include <boost/thread/sync_bounded_queue.hpp>
-#include "../logging/logging.hpp"
-#include "../multithreading/multithreading.hpp"
-#include "../network/MessageQueue/MessageQueue.hpp"
-#include "../network/udp/udp.hpp"
-#include "../parsing/parsing.hpp"
+#include <string>
+
 namespace audio
 {
+    extern unsigned long long input_dropped_frames;
+    extern unsigned long long output_dropped_frames;
+
     /**
      * @brief initialize the module
      * 

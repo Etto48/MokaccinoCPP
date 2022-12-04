@@ -1,6 +1,4 @@
 #pragma once
-#include "../defines.hpp"
-#include <iostream>
 namespace terminal
 {
     extern bool last_ret;

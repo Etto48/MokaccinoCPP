@@ -1,4 +1,6 @@
 #include "prompt.hpp"
+#include "../defines.hpp"
+#include <iostream>
 namespace terminal
 {
     bool last_ret = true;

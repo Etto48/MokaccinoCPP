@@ -1,4 +1,10 @@
 #include "messages.hpp"
+#include "../../defines.hpp"
+#include "../../multithreading/multithreading.hpp"
+#include "../../parsing/parsing.hpp"
+#include "../../logging/logging.hpp"
+#include "../MessageQueue/MessageQueue.hpp"
+#include "../udp/udp.hpp"
 namespace network::messages
 {
     MessageQueue messages_queue;

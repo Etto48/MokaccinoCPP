@@ -1,10 +1,9 @@
 #pragma once
-#include "../../../defines.hpp"
 #include <map>
 #include <mutex>
 #include <string>
+#include <exception>
 #include <boost/asio/ip/udp.hpp>
-#include "../../../logging/logging.hpp"
 
 namespace network
 {

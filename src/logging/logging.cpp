@@ -1,4 +1,11 @@
 #include "logging.hpp"
+#include "../defines.hpp"
+#include <iostream>
+#include <mutex>
+#include <stdint.h>
+#include "../terminal/prompt.hpp"
+#include "../multithreading/multithreading.hpp"
+
 namespace logging
 {
     #define ERR_TAG "\033[31m"

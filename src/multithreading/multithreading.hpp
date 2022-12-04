@@ -1,12 +1,6 @@
 #pragma once
-#include "../defines.hpp"
 #include <string>
-#include <map>
-#include <mutex>
-#include <condition_variable>
-#include <boost/thread/thread.hpp>
-#include <boost/asio/signal_set.hpp>
-#include "../logging/logging.hpp"
+
 namespace multithreading
 {
     /**

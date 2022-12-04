@@ -1,4 +1,6 @@
 #include "DataMap.hpp"
+#include "../../../defines.hpp"
+#include "../../../logging/logging.hpp"
 namespace network
 {
     bool DataMap::_add_user(const std::string& name,const boost::asio::ip::udp::endpoint& endpoint)

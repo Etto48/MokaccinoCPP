@@ -1,10 +1,8 @@
 #pragma once
-#include "../defines.hpp"
 #include <string>
 #include <vector>
 #include <tuple>
 #include <boost/asio/ip/udp.hpp>
-#include "../network/udp/udp.hpp"
 
 namespace parsing
 {

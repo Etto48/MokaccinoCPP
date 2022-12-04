@@ -1,14 +1,7 @@
 #pragma once
-#include "../defines.hpp"
-#include <iostream>
 #include <string>
-#include <mutex>
-#include <stdint.h>
 #include <boost/asio/ip/udp.hpp>
 #include "../network/MessageQueue/MessageQueue.hpp"
-#include "../terminal/prompt.hpp"
-#include "../multithreading/multithreading.hpp"
-
 #include "../toml.hpp"
 namespace logging
 {
