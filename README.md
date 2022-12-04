@@ -111,3 +111,9 @@ This message can be also sent at any time to end the call
 The audio data will be sent with the following format
 
 `AUDIO <data encoded base64>`
+
+## Libraries used
+
+- [Boost](https://www.boost.org/)
+- [PortAudio](http://portaudio.com/)
+- [Toml++](https://github.com/marzer/tomlplusplus)

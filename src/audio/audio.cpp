@@ -7,7 +7,6 @@ namespace audio
     std::string pending_name;
     std::string audio_name;
     
-
     void audio()
     {
         while(true)
