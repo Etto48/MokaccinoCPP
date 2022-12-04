@@ -12,7 +12,7 @@ set(Boost_DEBUG OFF)
 
 #packages
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
-find_package(PortAudio REQUIRED)
+find_package(portaudio REQUIRED)
 
 #definitions
 add_compile_definitions(_WIN32_WINNT=0x0601)
