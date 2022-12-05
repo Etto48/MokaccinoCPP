@@ -19,16 +19,29 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
-    - name: Install dependencies
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev libasound-dev
+          version: 1.0
+
+    - name: Cache PortAudio
+      id: portaudio-cache
+      uses: actions/cache@v3
+      with: 
+        path: portaudio-19.7.0
+        key: ${{ runner.os }}-PortAudio
+
+    - name: Download and compile PortAudio
+      if: steps.portaudio-cache.outputs.cache-hit != 'true'
       run: |
-        sudo apt-get update
-        sudo apt-get install cmake unzip wget libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev libasound-dev
         wget https://github.com/PortAudio/portaudio/archive/refs/tags/v19.7.0.zip
         unzip v19.7.0.zip
         cd portaudio-19.7.0
         cmake -B build
         cmake --build build --config Release
+    - name: Install PortAudio
+      run: |
+        cd portaudio-19.7.0
         sudo cmake --install build
 
     - name: Configure CMake
