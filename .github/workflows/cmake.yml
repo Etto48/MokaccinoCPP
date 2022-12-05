@@ -23,6 +23,7 @@ jobs:
       with:
         packages: libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev libasound2-dev
         version: 1.0
+        execute_install_scripts: true
 
     - name: Cache PortAudio
       id: portaudio-cache
