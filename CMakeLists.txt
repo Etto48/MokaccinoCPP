@@ -14,11 +14,16 @@ set(Boost_DEBUG OFF)
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
 find_package(portaudio REQUIRED)
 
-#definitions
-add_compile_definitions(_WIN32_WINNT=0x0601)
+#debug
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(_DEBUG)
 endif()
+
+#definitions
+add_compile_definitions(_WIN32_WINNT=0x0601)
 
 #link and include
 include_directories(${Boost_INCLUDE_DIRS}) 
