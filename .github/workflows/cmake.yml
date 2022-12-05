@@ -20,9 +20,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev libasound-dev
-          version: 1.0
+      with:
+        packages: libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev libasound-dev
+        version: 1.0
 
     - name: Cache PortAudio
       id: portaudio-cache
