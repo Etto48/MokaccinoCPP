@@ -51,11 +51,13 @@ namespace network::udp
     void handle_message(const std::string& name,const boost::asio::ip::udp::endpoint& endpoint, std::string msg)
     {
         msg.pop_back();//remove '\n'
+        /*
         if(name.length() == 0)
             logging::message_log(endpoint.address().to_string() + ":" + std::to_string(endpoint.port()),msg);
         else
             logging::message_log(name,msg);
-        
+        */
+       
         auto keyword = parsing::get_msg_keyword(msg);
 
         std::unique_lock lock(message_queue_association_mutex);

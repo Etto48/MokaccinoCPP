@@ -53,9 +53,9 @@ namespace logging
     {
         log("DBG", "Thread " HIGHLIGHT + thread_name + RESET " started");
     }
-    void supervisor_log(size_t connections,size_t services)
+    void supervisor_log(size_t connections,size_t services,unsigned long long audio_input_dropped_frames, unsigned long long audio_output_dropped_frames)
     {
-        log("DBG", "connections:" HIGHLIGHT + std::to_string(connections) + RESET " services:" HIGHLIGHT + std::to_string(services) + RESET);
+        log("DBG", "connections:" HIGHLIGHT + std::to_string(connections) + RESET " services:" HIGHLIGHT + std::to_string(services) + RESET " audio_dropped_frames: (I:" HIGHLIGHT + std::to_string(audio_input_dropped_frames) + RESET ", O:" HIGHLIGHT + std::to_string(audio_output_dropped_frames) + RESET ")");
     }
     void new_user_log(std::string name, const boost::asio::ip::udp::endpoint& endpoint)
     {
@@ -131,5 +131,9 @@ namespace logging
         log("ERR","Config file parsing error:");
         log("ERR",std::string("\t") + e.what());
         log("ERR",std::string("\t") + (*e.source().path) + " (" + std::to_string(e.source().begin.line) + ", " + std::to_string(e.source().begin.column) + ")");
+    }
+    void audio_call_error_log(const std::string& why)
+    {
+        log("ERR","Error during audio initialization (" HIGHLIGHT + why + RESET ")");
     }
 }

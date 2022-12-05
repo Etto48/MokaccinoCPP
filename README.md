@@ -117,4 +117,4 @@ The audio data will be sent with the following format
 - [Boost](https://www.boost.org/)
 - [PortAudio](http://portaudio.com/)
 - [Toml++](https://github.com/marzer/tomlplusplus)
-- [Base64](https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp/)
+- [Base64](https://github.com/joedf/base64.c)

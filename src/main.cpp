@@ -105,6 +105,7 @@ int main(int argc, char* argv[])
             network::udp::send("TEST","loopback");
             terminal::process_command("connect hostname localhost");
             network::messages::send("loopback","test message with spaces");
+            audio::start_call("loopback");
         }
 
         //WAIT FOR EXIT

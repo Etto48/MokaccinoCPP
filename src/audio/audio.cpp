@@ -23,80 +23,115 @@ namespace audio
 
     AudioBuddy audio_buddy;
 
-    PaStream* input_stream;
-    PaStream* output_stream;
+    PaStream* input_stream = nullptr;
+    PaStream* output_stream = nullptr;
 
     constexpr double SAMPLE_RATE = 44100;
-    constexpr unsigned long FRAMES_PER_BUFFER = 32;
+    constexpr unsigned long FRAMES_PER_BUFFER = 64;
+    constexpr unsigned long ENCODED_FRAMES_SIZE = 344;
 
     #define AUDIO_DATA_TYPE int32_t
+    struct DecodedBuffer
+    {
+        uint8_t data[FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)];
+    };
+    struct EncodedBuffer
+    {
+        unsigned char data[ENCODED_FRAMES_SIZE+1];
+    };
 
     boost::sync_bounded_queue<std::string> input_buffer{128};
     boost::sync_bounded_queue<std::string> output_buffer{128};
-
     
     unsigned long long input_dropped_frames = 0;
     unsigned long long output_dropped_frames = 0;
 
     int input_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {
-        static AUDIO_DATA_TYPE input_tmp_buffer[FRAMES_PER_BUFFER+1];
+        static EncodedBuffer encoded;
         if(input_buffer.full()) // dropping frames
         {
             input_dropped_frames++;
             return 0;
         }
-        for(unsigned int i = 0;i<frameCount;i++)
-        {
-            input_tmp_buffer[i] = ((AUDIO_DATA_TYPE*)input)[i];
-        }
-        input_tmp_buffer[frameCount] = 0;
-        auto encoded = base64_encode(std::string_view((char*)input_tmp_buffer));
-        input_buffer.push(encoded);
+        b64_encode((unsigned char*)input,frameCount*sizeof(AUDIO_DATA_TYPE),encoded.data);
+        input_buffer.push(std::string((char*)encoded.data));
         return 0;
     }
     int output_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {//we assume that data is already binary
-        std::string encoded;
+        static std::string encoded;
         if(!output_buffer.try_pull(encoded))
             return 0;
-        auto decoded = base64_decode(encoded);
-        if(decoded.length() != frameCount*sizeof(AUDIO_DATA_TYPE))
-            return 0;
-        auto len = frameCount*sizeof(AUDIO_DATA_TYPE);
-        for(unsigned int i = 0;i<len;i++)
-        {
-            ((char*)output)[i] = decoded[i];
-        }
+        
+        b64_decode((unsigned char*)encoded.c_str(),(unsigned int)encoded.length(),(unsigned char*)output);
         return 0;
     }
 
+    class AudioError: public std::exception
+    {
+    public:
+        std::string why;
+        AudioError(const std::string& why):why(why){};
+    };
     void comms_init()
     {
-        Pa_Initialize();
-        PaStreamParameters input_stream_params;
-        input_stream_params.channelCount = 1;
-        input_stream_params.device = Pa_GetDefaultInputDevice();
-        input_stream_params.hostApiSpecificStreamInfo = nullptr;
-        input_stream_params.sampleFormat = paInt32;
-        //check for error from Pa_GetDefaultInputDevice
-        auto input_device = Pa_GetDeviceInfo(input_stream_params.device);
-        input_stream_params.suggestedLatency = input_device->defaultLowInputLatency;
-        PaStreamParameters output_stream_params;
-        output_stream_params.channelCount = 1;
-        output_stream_params.device = Pa_GetDefaultOutputDevice();
-        output_stream_params.hostApiSpecificStreamInfo = nullptr;
-        output_stream_params.sampleFormat = paInt32;
-        //check for error from Pa_GetDefaultOutputDevice
-        auto output_device = Pa_GetDeviceInfo(output_stream_params.device);
-        output_stream_params.suggestedLatency = output_device->defaultLowOutputLatency;
-        
-        Pa_OpenStream(&input_stream,&input_stream_params,nullptr,SAMPLE_RATE,FRAMES_PER_BUFFER,paNoFlag,input_callback,nullptr);
-        Pa_OpenStream(&output_stream,nullptr,&output_stream_params,SAMPLE_RATE,FRAMES_PER_BUFFER,paNoFlag,output_callback,nullptr);
+        try
+        {
+            if(Pa_Initialize()!=paNoError)
+                throw AudioError("Pa_Initialize");
+            PaStreamParameters input_stream_params;
+            input_stream_params.channelCount = 1;
+            input_stream_params.device = Pa_GetDefaultInputDevice();
+            input_stream_params.hostApiSpecificStreamInfo = nullptr;
+            input_stream_params.sampleFormat = paInt32;
+            if(input_stream_params.device == paNoDevice)
+                throw AudioError("Pa_GetDefaultInputDevice");
+            auto input_device = Pa_GetDeviceInfo(input_stream_params.device);
+            input_stream_params.suggestedLatency = input_device->defaultLowInputLatency;
+            PaStreamParameters output_stream_params;
+            output_stream_params.channelCount = 1;
+            output_stream_params.device = Pa_GetDefaultOutputDevice();
+            output_stream_params.hostApiSpecificStreamInfo = nullptr;
+            output_stream_params.sampleFormat = paInt32;
+            if(output_stream_params.device == paNoDevice)
+                throw AudioError("Pa_GetDefaultOutputDevice");
+            auto output_device = Pa_GetDeviceInfo(output_stream_params.device);
+            output_stream_params.suggestedLatency = output_device->defaultLowOutputLatency;
+            
+            if(Pa_OpenStream(&input_stream,&input_stream_params,nullptr,SAMPLE_RATE,FRAMES_PER_BUFFER,paNoFlag,input_callback,nullptr) != paNoError)
+                throw AudioError("Pa_OpenStream");
+            if(Pa_OpenStream(&output_stream,nullptr,&output_stream_params,SAMPLE_RATE,FRAMES_PER_BUFFER,paNoFlag,output_callback,nullptr) != paNoError)
+                throw AudioError("Pa_OpenStream");
 
-        Pa_StartStream(input_stream);
-        Pa_StopStream(output_stream);
+            if(Pa_StartStream(input_stream) != paNoError)
+                throw AudioError("Pa_StartStream");
+            if(Pa_StartStream(output_stream) != paNoError)
+                throw AudioError("Pa_StartStream");
+        }catch(AudioError& e)
+        {
+            if(e.why != "Pa_Initialize") 
+            {
+                if(input_stream != nullptr)
+                {
+                    Pa_StopStream(input_stream);
+                    Pa_CloseStream(input_stream);
+                }
+                if(output_stream != nullptr)
+                {
+                    Pa_StopStream(output_stream);
+                    Pa_CloseStream(output_stream);
+                }
+                Pa_Terminate();
+            }
+            
+            audio_buddy.name = "";
+            pending_name = "";
+            input_stream = nullptr;
+            output_stream = nullptr;
 
+            logging::audio_call_error_log(e.why);
+        }
     }
     void comms_stop()
     {
@@ -109,8 +144,20 @@ namespace audio
         Pa_Terminate();
         audio_buddy.name = "";
         pending_name = "";
+        input_stream = nullptr;
+        output_stream = nullptr;
     }
-
+    void audio_sender() {
+        while(true)
+        {
+            auto encoded = input_buffer.pull();
+            std::unique_lock lock(name_mutex);
+            if(audio_buddy.name.length() > 0)
+            {//we are connected
+                network::udp::send(parsing::compose_message({"AUDIO",encoded}),audio_buddy.endpoint);
+            }
+        }
+    }
     void audio()
     {
         while(true)
@@ -154,15 +201,22 @@ namespace audio
         network::udp::register_queue("AUDIOSTOP",audio_queue,true);
         network::udp::register_queue("AUDIO",audio_queue,true);
         multithreading::add_service("audio",audio);
+        multithreading::add_service("audio_sender",audio_sender);
     }
     void start_call(const std::string& name)
     {
         std::unique_lock lock(name_mutex);
-        if(audio_buddy.name.length() == 0)
+        if(DEBUG && name == "loopback")
+        {
+            audio_buddy = {"loopback",network::udp::connection_map["loopback"].endpoint};
+            comms_init();
+        }
+        else if(audio_buddy.name.length() == 0)
         {
             pending_name = name;
             network::udp::send(parsing::compose_message({"AUDIOSTART"}),name);
         }
+        
     }
     void stop_call()
     {

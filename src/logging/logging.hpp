@@ -15,7 +15,7 @@ namespace logging
     
     void message_log(std::string src, std::string message);
     void new_thread_log(std::string thread_name);
-    void supervisor_log(size_t connections, size_t services);
+    void supervisor_log(size_t connections,size_t services,unsigned long long audio_input_dropped_frames, unsigned long long audio_output_dropped_frames);
     void new_user_log(std::string name, const boost::asio::ip::udp::endpoint& endpoint);
     void removed_user_log(std::string name);
     void connection_test_log(const network::MessageQueueItem& item);
@@ -34,4 +34,5 @@ namespace logging
     void command_not_found_log(const std::string& line);
     void config_not_found_log(const std::string& path);
     void config_error_log(const toml::parse_error& e);
+    void audio_call_error_log(const std::string& why);
 }

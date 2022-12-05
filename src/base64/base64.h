@@ -1,31 +1,34 @@
-//
-//  base64 encoding and decoding with C++.
-//  Version: 2.rc.09 (release candidate)
-//
+#pragma once
+/*
+	base64.c - by Joe DF (joedf@ahkscript.org)
+	Released under the MIT License
+	
+	Revision: 2015-06-12 01:26:51
+	
+	Thank you for inspiration:
+	http://www.codeproject.com/Tips/813146/Fast-base-functions-for-encode-decode
+*/
 
-#ifndef BASE64_H_C0CE2A47_D10E_42C9_A27C_C883944E704A
-#define BASE64_H_C0CE2A47_D10E_42C9_A27C_C883944E704A
 
-#include <string>
+//Base64 char table function - used internally for decoding
+unsigned int b64_int(unsigned int ch);
 
-#include <string_view>
+// in_size : the number bytes to be encoded.
+// Returns the recommended memory size to be allocated for the output buffer excluding the null byte
+unsigned int b64e_size(unsigned int in_size);
 
-std::string base64_encode     (std::string const& s, bool url = false);
-std::string base64_encode_pem (std::string const& s);
-std::string base64_encode_mime(std::string const& s);
+// in_size : the number bytes to be decoded.
+// Returns the recommended memory size to be allocated for the output buffer
+unsigned int b64d_size(unsigned int in_size);
 
-std::string base64_decode(std::string const& s, bool remove_linebreaks = false);
-std::string base64_encode(unsigned char const*, size_t len, bool url = false);
+// in : buffer of "raw" binary to be encoded.
+// in_len : number of bytes to be encoded.
+// out : pointer to buffer with enough memory, user is responsible for memory allocation, receives null-terminated string
+// returns size of output including null byte
+unsigned int b64_encode(const unsigned char* in, unsigned int in_len, unsigned char* out);
 
-//
-// Interface with std::string_view rather than const std::string&
-// Requires C++17
-// Provided by Yannic Bonenberger (https://github.com/Yannic)
-//
-std::string base64_encode     (std::string_view s, bool url = false);
-std::string base64_encode_pem (std::string_view s);
-std::string base64_encode_mime(std::string_view s);
-
-std::string base64_decode(std::string_view s, bool remove_linebreaks = false);
-
-#endif /* BASE64_H_C0CE2A47_D10E_42C9_A27C_C883944E704A */
+// in : buffer of base64 string to be decoded.
+// in_len : number of bytes to be decoded.
+// out : pointer to buffer with enough memory, user is responsible for memory allocation, receives "raw" binary
+// returns size of output excluding null byte
+unsigned int b64_decode(const unsigned char* in, unsigned int in_len, unsigned char* out);
