@@ -8,4 +8,5 @@ namespace terminal::commands
     bool disconnect(const std::vector<std::string>& args);
     bool msg(const std::vector<std::string>& args);
     bool voice(const std::vector<std::string>& args);
+    bool sleep(const std::vector<std::string>& args);
 };

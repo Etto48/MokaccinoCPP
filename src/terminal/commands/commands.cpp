@@ -1,5 +1,7 @@
 #include "commands.hpp"
 #include "../../defines.hpp"
+#include "../../ansi_escape.hpp"
+#include <boost/thread.hpp>
 #include "../../parsing/parsing.hpp"
 #include "../../logging/logging.hpp"
 #include "../../network/udp/udp.hpp"
@@ -106,6 +108,21 @@ namespace terminal::commands
         }else
         {
             logging::log("ERR","The second argument must be start or stop, use \"help voice\" for more info");
+            return false;
+        }
+    }
+
+    bool sleep(const std::vector<std::string>& args)
+    {
+        try
+        {
+            auto seconds = std::stoul(args[1]);
+            logging::log("DBG","Sleeping for " HIGHLIGHT + args[1] + RESET "s");
+            boost::this_thread::sleep_for(boost::chrono::seconds(seconds));
+            return true;
+        }catch(std::invalid_argument&)
+        {
+            logging::log("ERR","The argument must be a positive number");
             return false;
         }
     }

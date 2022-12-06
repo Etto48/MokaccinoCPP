@@ -156,6 +156,12 @@ namespace terminal
             "Start a voice call with a user or stop one previously started",
             commands::voice,
             2,3});
+        add_command(CommandFunction{
+            "sleep",
+            "<seconds>",
+            "Make the calling process sleep for a number of seconds (useful with config files)",
+            commands::sleep,
+            2,2});
         multithreading::add_service("terminal",terminal);
     }
 }

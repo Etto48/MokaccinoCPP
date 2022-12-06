@@ -83,7 +83,9 @@ namespace audio
         }
         auto decoded_size = b64d_size((unsigned int)encoded.length());
         b64_decode((unsigned char*)encoded.c_str(),(unsigned int)encoded.length(),output_decoder_buffer);
-        opus_decode(decoder,output_decoder_buffer,decoded_size,(opus_int16*)output,frameCount,0);
+        auto opus_decoded_size = opus_decode(decoder,output_decoder_buffer,decoded_size,(opus_int16*)output,frameCount,0);
+        if(opus_decoded_size < 0)
+            return 0;
         return 0;
     }
 
