@@ -35,13 +35,13 @@ namespace audio
 
     constexpr opus_int32 SAMPLE_RATE = 48000;
     
-    constexpr unsigned long FRAMES_PER_BUFFER = 64;
-    constexpr unsigned long ENCODED_FRAMES_SIZE = 344;
+    constexpr unsigned long FRAMES_PER_BUFFER = 120;
+    constexpr unsigned long ENCODED_FRAMES_SIZE = 80;
 
     #define AUDIO_DATA_TYPE int16_t
     #define AUDIO_DATA_TYPE_PA paInt16
 
-    constexpr opus_int32 BUFFER_OPUS_SIZE = FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)/2;
+    constexpr opus_int32 BUFFER_OPUS_SIZE = FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)/4;
 
     struct DecodedBuffer
     {
@@ -52,8 +52,8 @@ namespace audio
         unsigned char data[ENCODED_FRAMES_SIZE+1];
     };
 
-    boost::sync_bounded_queue<std::string> input_buffer{128};
-    boost::sync_bounded_queue<std::string> output_buffer{128};
+    boost::sync_bounded_queue<std::string> input_buffer{256};
+    boost::sync_bounded_queue<std::string> output_buffer{256};
     
     unsigned long long input_dropped_frames = 0;
     unsigned long long output_dropped_frames = 0;
@@ -130,6 +130,9 @@ namespace audio
             decoder = opus_decoder_create(SAMPLE_RATE,1,&error);
             if(error != OPUS_OK)
                 throw AudioError("opus_decoder_create");
+
+            opus_encoder_ctl(encoder,OPUS_SET_BITRATE(OPUS_BITRATE_MAX));
+            opus_decoder_ctl(decoder,OPUS_SET_BITRATE(OPUS_BITRATE_MAX));
 
             if(Pa_OpenStream(&input_stream,&input_stream_params,nullptr,double(SAMPLE_RATE),FRAMES_PER_BUFFER,paNoFlag,input_callback,nullptr) != paNoError)
                 throw AudioError("Pa_OpenStream");
@@ -228,14 +231,17 @@ namespace audio
                 {//user already connected for voice
                     network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
                 }
+                logging::log("DBG","Handled " + args[0] + " from "+item.src);
             }else if(args.size() == 1 and args[0] == "AUDIOACCEPT" and pending_name == item.src and audio_buddy.name.length()==0)
             {
                 audio_buddy = {item.src,item.src_endpoint};
                 pending_name = "";
                 comms_init();
+                logging::log("DBG","Handled " + args[0] + " from "+item.src);
             }else if(args.size() == 1 and args[0] == "AUDIOSTOP" and (audio_buddy.name == item.src or pending_name == item.src))
             {
                 comms_stop();
+                logging::log("DBG","Handled " + args[0] + " from "+item.src);
             }else if(args.size() == 2 and args[0] == "AUDIO" and audio_buddy.name == item.src)
             {
                 if(not output_buffer.try_push(args[1]))
