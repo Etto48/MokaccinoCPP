@@ -22,7 +22,7 @@ jobs:
     - name: Install APT packages
       run: |
         sudo apt update
-        sudo apt install -y libasound2-dev libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev
+        sudo apt install -y libasound2-dev opus-tools libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev
 
     - name: Cache PortAudio
       id: portaudio-cache

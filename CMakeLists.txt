@@ -14,6 +14,7 @@ set(Boost_DEBUG OFF)
 #packages
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
 find_package(portaudio REQUIRED)
+find_package(opus REQUIRED)
 
 #debug
 if(NOT CMAKE_BUILD_TYPE)
@@ -33,7 +34,7 @@ endif()
 
 #link and include
 include_directories(${Boost_INCLUDE_DIRS}) 
-link_libraries(${Boost_LIBRARIES} portaudio_static)
+link_libraries(${Boost_LIBRARIES} portaudio_static Opus::opus)
 add_executable(Mokaccino ${sources})
 
 #testing

@@ -4,6 +4,7 @@
 #include <string_view>
 #include <boost/thread/sync_bounded_queue.hpp>
 #include <portaudio.h>
+#include <opus/opus.h>
 #include "../logging/logging.hpp"
 #include "../multithreading/multithreading.hpp"
 #include "../network/MessageQueue/MessageQueue.hpp"
@@ -26,11 +27,22 @@ namespace audio
     PaStream* input_stream = nullptr;
     PaStream* output_stream = nullptr;
 
-    constexpr double SAMPLE_RATE = 44100;
+    OpusEncoder* encoder = nullptr;
+    OpusDecoder* decoder = nullptr;
+
+    unsigned char* input_encoder_buffer = nullptr;
+    unsigned char* output_decoder_buffer = nullptr;
+
+    constexpr opus_int32 SAMPLE_RATE = 48000;
+    
     constexpr unsigned long FRAMES_PER_BUFFER = 64;
     constexpr unsigned long ENCODED_FRAMES_SIZE = 344;
 
-    #define AUDIO_DATA_TYPE int32_t
+    #define AUDIO_DATA_TYPE int16_t
+    #define AUDIO_DATA_TYPE_PA paInt16
+
+    constexpr opus_int32 BUFFER_OPUS_SIZE = FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)/2;
+
     struct DecodedBuffer
     {
         uint8_t data[FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)];
@@ -54,7 +66,10 @@ namespace audio
             input_dropped_frames++;
             return 0;
         }
-        b64_encode((unsigned char*)input,frameCount*sizeof(AUDIO_DATA_TYPE),encoded.data);
+        auto encoded_size = opus_encode(encoder,(opus_int16*)input,frameCount,input_encoder_buffer,BUFFER_OPUS_SIZE);
+        if(encoded_size < 0)
+            return 0;
+        b64_encode(input_encoder_buffer,encoded_size,encoded.data);
         input_buffer.push(std::string((char*)encoded.data));
         return 0;
     }
@@ -62,9 +77,13 @@ namespace audio
     {//we assume that data is already binary
         static std::string encoded;
         if(not output_buffer.try_pull(encoded))
+        {
+            memset(output,0,frameCount*sizeof(AUDIO_DATA_TYPE));
             return 0;
-        
-        b64_decode((unsigned char*)encoded.c_str(),(unsigned int)encoded.length(),(unsigned char*)output);
+        }
+        auto decoded_size = b64d_size((unsigned int)encoded.length());
+        b64_decode((unsigned char*)encoded.c_str(),(unsigned int)encoded.length(),output_decoder_buffer);
+        opus_decode(decoder,output_decoder_buffer,decoded_size,(opus_int16*)output,frameCount,0);
         return 0;
     }
 
@@ -84,7 +103,7 @@ namespace audio
             input_stream_params.channelCount = 1;
             input_stream_params.device = Pa_GetDefaultInputDevice();
             input_stream_params.hostApiSpecificStreamInfo = nullptr;
-            input_stream_params.sampleFormat = paInt32;
+            input_stream_params.sampleFormat = AUDIO_DATA_TYPE_PA;
             if(input_stream_params.device == paNoDevice)
                 throw AudioError("Pa_GetDefaultInputDevice");
             auto input_device = Pa_GetDeviceInfo(input_stream_params.device);
@@ -93,21 +112,33 @@ namespace audio
             output_stream_params.channelCount = 1;
             output_stream_params.device = Pa_GetDefaultOutputDevice();
             output_stream_params.hostApiSpecificStreamInfo = nullptr;
-            output_stream_params.sampleFormat = paInt32;
+            output_stream_params.sampleFormat = AUDIO_DATA_TYPE_PA;
             if(output_stream_params.device == paNoDevice)
                 throw AudioError("Pa_GetDefaultOutputDevice");
             auto output_device = Pa_GetDeviceInfo(output_stream_params.device);
             output_stream_params.suggestedLatency = output_device->defaultLowOutputLatency;
             
-            if(Pa_OpenStream(&input_stream,&input_stream_params,nullptr,SAMPLE_RATE,FRAMES_PER_BUFFER,paNoFlag,input_callback,nullptr) != paNoError)
+            if(Pa_OpenStream(&input_stream,&input_stream_params,nullptr,double(SAMPLE_RATE),FRAMES_PER_BUFFER,paNoFlag,input_callback,nullptr) != paNoError)
                 throw AudioError("Pa_OpenStream");
-            if(Pa_OpenStream(&output_stream,nullptr,&output_stream_params,SAMPLE_RATE,FRAMES_PER_BUFFER,paNoFlag,output_callback,nullptr) != paNoError)
+            if(Pa_OpenStream(&output_stream,nullptr,&output_stream_params,double(SAMPLE_RATE),FRAMES_PER_BUFFER,paNoFlag,output_callback,nullptr) != paNoError)
                 throw AudioError("Pa_OpenStream");
 
             if(Pa_StartStream(input_stream) != paNoError)
                 throw AudioError("Pa_StartStream");
             if(Pa_StartStream(output_stream) != paNoError)
                 throw AudioError("Pa_StartStream");
+
+            int error = 0;
+            encoder = opus_encoder_create(SAMPLE_RATE,1,OPUS_APPLICATION_VOIP,&error);
+            if(error != OPUS_OK)
+                throw AudioError("opus_encoder_create");
+            decoder = opus_decoder_create(SAMPLE_RATE,1,&error);
+            if(error != OPUS_OK)
+                throw AudioError("opus_decoder_create");
+            
+            input_encoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
+            output_decoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
+            
         }catch(AudioError& e)
         {
             if(e.why != "Pa_Initialize") 
@@ -135,6 +166,9 @@ namespace audio
     }
     void comms_stop()
     {
+        opus_encoder_destroy(encoder);
+        opus_decoder_destroy(decoder);
+
         Pa_StopStream(input_stream);
         Pa_StopStream(output_stream);
 
@@ -146,6 +180,9 @@ namespace audio
         pending_name = "";
         input_stream = nullptr;
         output_stream = nullptr;
+
+        delete[] input_encoder_buffer;
+        delete[] output_decoder_buffer;
     }
     void audio_sender() {
         while(true)
@@ -188,9 +225,6 @@ namespace audio
             {
                 if(not output_buffer.try_push(args[1]))
                     output_dropped_frames++;
-            }else
-            {
-                logging::log("DBG","Dropped "+ args[0] +" from "+ item.src_endpoint.address().to_string() +":"+ std::to_string(item.src_endpoint.port()));
             }
         }
     }
