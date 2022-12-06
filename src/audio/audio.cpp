@@ -120,6 +120,17 @@ namespace audio
             auto output_device = Pa_GetDeviceInfo(output_stream_params.device);
             output_stream_params.suggestedLatency = output_device->defaultLowOutputLatency;
             
+            input_encoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
+            output_decoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
+
+            int error = 0;
+            encoder = opus_encoder_create(SAMPLE_RATE,1,OPUS_APPLICATION_VOIP,&error);
+            if(error != OPUS_OK)
+                throw AudioError("opus_encoder_create");
+            decoder = opus_decoder_create(SAMPLE_RATE,1,&error);
+            if(error != OPUS_OK)
+                throw AudioError("opus_decoder_create");
+
             if(Pa_OpenStream(&input_stream,&input_stream_params,nullptr,double(SAMPLE_RATE),FRAMES_PER_BUFFER,paNoFlag,input_callback,nullptr) != paNoError)
                 throw AudioError("Pa_OpenStream");
             if(Pa_OpenStream(&output_stream,nullptr,&output_stream_params,double(SAMPLE_RATE),FRAMES_PER_BUFFER,paNoFlag,output_callback,nullptr) != paNoError)
@@ -129,17 +140,6 @@ namespace audio
                 throw AudioError("Pa_StartStream");
             if(Pa_StartStream(output_stream) != paNoError)
                 throw AudioError("Pa_StartStream");
-
-            int error = 0;
-            encoder = opus_encoder_create(SAMPLE_RATE,1,OPUS_APPLICATION_VOIP,&error);
-            if(error != OPUS_OK)
-                throw AudioError("opus_encoder_create");
-            decoder = opus_decoder_create(SAMPLE_RATE,1,&error);
-            if(error != OPUS_OK)
-                throw AudioError("opus_decoder_create");
-            
-            input_encoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
-            output_decoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
             
         }catch(AudioError& e)
         {
@@ -163,6 +163,17 @@ namespace audio
             input_stream = nullptr;
             output_stream = nullptr;
 
+            if(input_encoder_buffer != nullptr)
+            {
+                delete [] input_encoder_buffer;
+                input_encoder_buffer = nullptr;
+            }
+            if(output_decoder_buffer != nullptr)
+            {
+                delete [] output_decoder_buffer;
+                output_decoder_buffer = nullptr;
+            }
+
             logging::audio_call_error_log(e.why);
         }
     }
@@ -183,8 +194,10 @@ namespace audio
         input_stream = nullptr;
         output_stream = nullptr;
 
-        delete[] input_encoder_buffer;
-        delete[] output_decoder_buffer;
+        if(input_encoder_buffer != nullptr)
+            delete[] input_encoder_buffer;
+        if(output_decoder_buffer != nullptr)
+            delete[] output_decoder_buffer;
     }
     void audio_sender() {
         while(true)
