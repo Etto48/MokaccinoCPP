@@ -18,7 +18,7 @@
 bool DEBUG = 
 #ifdef _DEBUG
     true;
-#elif
+#else
     false;
 #endif
 
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
         ("debug",boost::program_options::bool_switch()->value_name("debug log"),
         #ifdef _DEBUG
             "disable debug messages"
-        #elif
+        #else
             "enable debug messages"
         #endif
         );
