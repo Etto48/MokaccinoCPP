@@ -1,10 +1,22 @@
 #pragma once
 #include <string>
+#include <mutex>
 #include <boost/asio/ip/udp.hpp>
 #include "../network/MessageQueue/MessageQueue.hpp"
 #include "../toml.hpp"
 namespace logging
 {
+    /**
+     * @brief use this if you want to lock the output of the program
+     * 
+     */
+    extern std::mutex output_mutex;
+    /**
+     * @brief initialize the module
+     * 
+     * @param log_file if you want to write the log to a file, set this to the path, this will be ignored if set to ""
+     */
+    void init(const std::string& log_file = "");
     /**
      * @brief print something on the screen
      * 

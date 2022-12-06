@@ -1,5 +1,8 @@
 #include "defines.hpp"
+#include "ansi_escape.hpp"
 #include <iostream>
+#include <filesystem>
+#include <fstream>
 #include <boost/program_options.hpp>
 #include "multithreading/multithreading.hpp"
 #include "logging/supervisor/supervisor.hpp"
@@ -12,7 +15,16 @@
 #include "audio/audio.hpp"
 #include "toml.hpp"
 
-bool DEBUG = false;
+bool DEBUG = 
+#ifdef _DEBUG
+    true;
+#elif
+    false;
+#endif
+
+#ifdef _TEST
+extern int test();
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -34,8 +46,15 @@ int main(int argc, char* argv[])
             "select a username")
         ("config,c",boost::program_options::value<std::string>()->default_value(CONFIG_PATH)->value_name("config location"),
             "specify the path of the config file")
-        ("debug",boost::program_options::bool_switch(&DEBUG),
-            "enable debug messages and tests");
+        ("log,l",boost::program_options::value<std::string>()->default_value("")->value_name("log file"),
+            "enable logging to a file and specify the path")
+        ("debug",boost::program_options::bool_switch()->value_name("debug log"),
+        #ifdef _DEBUG
+            "disable debug messages"
+        #elif
+            "enable debug messages"
+        #endif
+        );
     boost::program_options::store(boost::program_options::parse_command_line(argc,argv,desc),args);
     boost::program_options::notify(args);
     if(args.count("help"))
@@ -44,9 +63,11 @@ int main(int argc, char* argv[])
     }
     else
     {
-        #ifdef _DEBUG
-            DEBUG = true;
-        #endif
+        logging::init(args["log"].as<std::string>());
+        if(args["debug"].as<bool>())
+        {
+            DEBUG = not DEBUG;
+        }
         //LOAD CONFIG
         toml::table config;
         bool config_loaded = false;
@@ -67,12 +88,18 @@ int main(int argc, char* argv[])
             }
         }
         
-        if(!config_loaded && username.length() == 0)
+        if(not config_loaded and username.length() == 0)
         {
-            std::cout << "\r\033[KUsername: ";
+            std::cout << "\r" CLEAR_LINE "Username: ";
             std::cout.flush();
             std::cin >> username;
-            logging::log("MSG","Consider providing a config file in \"" + args["config"].as<std::string>() + "\"");
+            std::filesystem::create_directories(MOKACCINO_ROOT);
+            std::fstream new_config{CONFIG_PATH,std::ios::out | std::ios::trunc};
+            toml::table default_config{
+                { "network", toml::table{ {"username", username} }}
+            };
+            new_config << default_config;
+            logging::log("MSG","Config file written to \"" HIGHLIGHT + args["config"].as<std::string>() + RESET "\"");
         }
 
 
@@ -98,15 +125,23 @@ int main(int argc, char* argv[])
             }
         }
 
-        
-        //tests
-        if(DEBUG)
-        {
-            network::udp::send("TEST","loopback");
-            terminal::process_command("connect hostname localhost");
-            network::messages::send("loopback","test message with spaces");
-            audio::start_call("loopback");
+        //startup_commands execution
+        auto startup_commands_config = config["terminal"]["startup_commands"].as_array();
+        if(startup_commands_config != nullptr) 
+        {// if startup_commands was defined in the config
+            for(auto&& c : *startup_commands_config)
+            {
+                if(c.is_string())
+                {
+                    auto command = c.value_or(std::string{});
+                    terminal::process_command(command);
+                }
+            }
         }
+        //tests
+        #ifdef _TEST
+        return test();
+        #endif
 
         //WAIT FOR EXIT
         multithreading::wait_termination();

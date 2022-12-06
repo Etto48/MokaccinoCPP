@@ -64,4 +64,18 @@ namespace parsing
      * @return (enpoint, hostname)
      */
     std::pair<boost::asio::ip::udp::endpoint,std::string> endpoint_from_hostname(const std::string& str);
+    /**
+     * @brief strip ansi escape sequences (CSI) from a string
+     * 
+     * @param str string from where the codes will be stripped
+     * @return stripped string
+     */
+    std::string strip_ansi(const std::string& str);
+    /**
+     * @brief get an environment variable and put it in a sring
+     * 
+     * @param env_var the name of the variable
+     * @return the value of the variable, "" if not found
+     */
+    std::string getenv(const std::string& env_var);
 }

@@ -1,22 +1,37 @@
 #include "logging.hpp"
 #include "../defines.hpp"
+#include "../ansi_escape.hpp"
 #include <iostream>
+#include <fstream>
 #include <mutex>
 #include <stdint.h>
 #include "../terminal/prompt.hpp"
 #include "../multithreading/multithreading.hpp"
+#include "../parsing/parsing.hpp"
 
 namespace logging
 {
-    #define ERR_TAG "\033[31m"
-    #define DBG_TAG "\033[33m"
-    #define MSG_TAG "\033[34m"
-    #define HIGHLIGHT "\033[35m"
-    #define TAG "\033[36m"
-    #define RESET "\033[0m"
     std::mutex output_mutex;
+    std::string path_to_log;
+    void init(const std::string& log_file)
+    {
+        path_to_log = log_file;
+        if(path_to_log.length() > 0)
+        {
+            std::fstream file(path_to_log,std::ios::out | std::ios::app);
+            if(not file.is_open())
+            {
+                logging::log("ERR","Error opening log file \"" HIGHLIGHT +log_file+ RESET "\"");
+                path_to_log = "";
+            }else
+            {
+                file << "--- Mokaccino log started ---" << std::endl;
+            }
+        }
+    }
     void log(std::string log_type,std::string message)
     {
+        static std::string last_prefix;
         unsigned int verbosity = DEBUG? 2 : 1;
         std::string terminal_prefix;
         std::string file_prefix;
@@ -33,15 +48,33 @@ namespace logging
             verbosity_required = 1;
         }else if(log_type == "DBG")
         {
-            file_prefix = "[DEBUG] ";
-            terminal_prefix = DBG_TAG "[DEBUG]" RESET " " TAG "[" + multithreading::get_current_thread_name() + "]" RESET " ";
+            auto thread_name = multithreading::get_current_thread_name();
+            file_prefix = "[DEBUG] ["+thread_name+"] ";
+            terminal_prefix = DBG_TAG "[DEBUG]" RESET " " TAG "[" + thread_name + "]" RESET " ";
             verbosity_required = 2;
         }
         if(verbosity >= verbosity_required)
         {
             std::unique_lock lock(output_mutex);
-            std::cout << "\r\033[K" << terminal_prefix << message << std::endl;
-            terminal::prompt();
+            if(terminal_prefix == last_prefix)
+            {
+                terminal_prefix = std::string(parsing::strip_ansi(last_prefix).length(),' ');
+                file_prefix = terminal_prefix;
+            }
+            else
+                last_prefix = terminal_prefix;
+            #ifdef NO_ANSI_ESCAPE
+            std::cout << terminal_prefix << parsing::strip_ansi(message) << std::endl;
+            #else
+            std::cout << "\r" CLEAR_LINE << terminal_prefix << message << std::endl;
+            #endif
+            if(path_to_log.length() > 0)
+            {
+                std::fstream file(path_to_log,std::ios::out | std::ios::app);
+                file << file_prefix << parsing::strip_ansi(message) << std::endl;
+            }
+            if(not IsDebuggerPresent())
+                terminal::prompt();
         }
     }
     
@@ -77,9 +110,6 @@ namespace logging
     {
         log("DBG", "Config file loaded from \"" HIGHLIGHT + path + RESET "\"");
     }
-    
-    #define MESSAGE_PEER "\033[32m"
-    #define MESSAGE_TEXT "\033[30;1m"
 
     void sent_text_message_log(const std::string& to, const std::string& msg)
     {
@@ -120,7 +150,7 @@ namespace logging
     }
     void command_not_found_log(const std::string& line)
     {
-        log("ERR","Command \"" HIGHLIGHT + line + RESET "\" not found");
+        log("ERR","Command \"" HIGHLIGHT + line + RESET "\" not found, use \"help\" for a list of commands");
     }
     void config_not_found_log(const std::string& path)
     {

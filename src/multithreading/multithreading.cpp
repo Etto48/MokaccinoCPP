@@ -56,7 +56,7 @@ namespace multithreading
     void wait_termination()
     {
         std::unique_lock lock(termination_mutex);
-        while(!termination_required_flag)
+        while(not termination_required_flag)
             termination_required.wait(lock);
     }
     std::string get_current_thread_name()

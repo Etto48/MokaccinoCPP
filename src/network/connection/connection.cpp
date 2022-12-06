@@ -26,26 +26,26 @@ namespace network::connection
             if(args.size() > 0)
             {
                 std::unique_lock lock(status_map_mutex);
-                if(args[0] == "CONNECT" && args.size() == 2)
+                if(args[0] == "CONNECT" and args.size() == 2)
                 {
                     status_map[item.src_endpoint] = {"CONNECTED",args[1]};
                     udp::send(parsing::compose_message({"HANDSHAKE",username}),item.src_endpoint);
                     logging::log("DBG","Handled CONNECT from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
                 }
-                else if(args[0] == "HANDSHAKE" && args.size() == 2 && status_map[item.src_endpoint].expected_message == "HANDSHAKE" && status_map[item.src_endpoint].name == args[1])
+                else if(args[0] == "HANDSHAKE" and args.size() == 2 and status_map[item.src_endpoint].expected_message == "HANDSHAKE" and status_map[item.src_endpoint].name == args[1])
                 {
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     udp::send(parsing::compose_message({"CONNECTED",username}),item.src_endpoint);
                     logging::log("DBG","Handled HANDSHAKE from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
                 }
-                else if(args[0] == "CONNECTED" && args.size() == 2 && status_map[item.src_endpoint].expected_message == "CONNECTED" && status_map[item.src_endpoint].name == args[1])
+                else if(args[0] == "CONNECTED" and args.size() == 2 and status_map[item.src_endpoint].expected_message == "CONNECTED" and status_map[item.src_endpoint].name == args[1])
                 {
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     logging::log("DBG","Handled CONNECTED from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
                 }
-                else if(args[0] == "DISCONNECT" && args.size() >= 1 && args.size() <= 2)
+                else if(args[0] == "DISCONNECT" and args.size() >= 1 and args.size() <= 2)
                 {
                     std::string reason;
                     if(args.size() == 2)
@@ -54,9 +54,9 @@ namespace network::connection
                     udp::connection_map.remove_user(item.src);
                 }
                 //REQUEST <to>
-                else if(args[0] == "REQUEST" && args.size() == 2)
+                else if(args[0] == "REQUEST" and args.size() == 2)
                 {
-                    if(!udp::connection_map.check_user(args[1]))
+                    if(not udp::connection_map.check_user(args[1]))
                     {//not found
                         udp::send(parsing::compose_message({"FAIL",args[1]}),item.src_endpoint);
                     }
@@ -71,7 +71,7 @@ namespace network::connection
                     }
                 }
                 //REQUESTED <from> <at>
-                else if(args[0] == "REQUESTED" && args.size() == 3 && !udp::connection_map.check_user(args[1]) && udp::connection_map.server() == item.src_endpoint)
+                else if(args[0] == "REQUESTED" and args.size() == 3 and not udp::connection_map.check_user(args[1]) and udp::connection_map.server() == item.src_endpoint)
                 {
                     try{
                         auto endpoint = parsing::endpoint_from_str(args[2]);
@@ -80,11 +80,11 @@ namespace network::connection
                     }catch(parsing::EndpointFromStrError&)
                     {}
                 }
-                else if(args[0] == "FAIL" && args.size() == 2)
+                else if(args[0] == "FAIL" and args.size() == 2)
                 {
                     
                 }
-                else if(DEBUG && args[0] == "TEST")
+                else if(DEBUG and args[0] == "TEST")
                 {
                     logging::connection_test_log(item);
                 }

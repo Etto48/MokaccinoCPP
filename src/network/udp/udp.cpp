@@ -64,7 +64,7 @@ namespace network::udp
         auto queue = message_queue_association.find(keyword);
         if(queue!=message_queue_association.end())
         {
-            if(name != "" || !queue->second.connection_required)
+            if(name != "" or not queue->second.connection_required)
             {
                 queue->second.queue->push({name,endpoint,msg});
             }else

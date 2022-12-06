@@ -30,7 +30,7 @@ namespace parsing
         bool escape = false;
         for(const auto& c: str)
         {
-            if(c == split_on && !escape)
+            if(c == split_on and not escape)
             {
                 if(current.length() > 0)
                 {
@@ -38,7 +38,7 @@ namespace parsing
                     current = "";
                 }
             }
-            else if(c == escape_on && !escape)
+            else if(c == escape_on and not escape)
             {
                 escape = true;
             }
@@ -83,12 +83,12 @@ namespace parsing
         {
             if(c!=':')
                 addr_done = true;
-            else if(!addr_done)
+            else if(not addr_done)
                 addr += c;
             else
                 port += c;
         }
-        if(!addr_done)
+        if(not addr_done)
             throw EndpointFromStrError{};
         boost::system::error_code ec;
         
@@ -143,5 +143,51 @@ namespace parsing
 
         auto endpoint = network::udp::dns_lookup(host,port_var);
         return {endpoint,host};
+    }
+    std::string strip_ansi(const std::string& str)
+    {
+        std::string ret;
+        bool stripping = false;
+        for(const auto& c: str)
+        {
+            if(c=='\033')
+            {
+                stripping = true;
+            }
+            else if(stripping and std::isalpha(c))
+            {
+                stripping = false;
+            }
+            else if(not stripping)
+            {
+                ret += c;
+            }
+        }
+        return ret;
+    }
+    std::string getenv(const std::string& env_var)
+    {
+        #ifdef _WIN32
+        char *var = nullptr;
+        std::string ret;
+        if(_dupenv_s(&var,nullptr,env_var.c_str())!=0)
+            return "";
+        if(var != nullptr)
+        {
+            ret = var;
+            free(var);
+            return ret;
+        }
+        else
+        {
+            return "";
+        }
+        
+        #else
+        auto var = std::getenv(env_var.c_str());
+        if(var == nullptr)
+            return "";
+        else return std::string(var);        
+        #endif
     }
 }

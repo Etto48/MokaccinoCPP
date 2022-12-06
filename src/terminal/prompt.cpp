@@ -1,16 +1,19 @@
 #include "prompt.hpp"
 #include "../defines.hpp"
+#include "../ansi_escape.hpp"
 #include <iostream>
 namespace terminal
 {
     bool last_ret = true;
     void prompt()
     {
-        std::cout << "\r\033[K";
+        #ifndef _TEST
+        std::cout << "\r" CLEAR_LINE;
         if(last_ret)
-            std::cout << "\033[32mO\033[0m> ";
+            std::cout << CORRECT "O" RESET "> ";
         else
-            std::cout << "\033[31mX\033[0m> ";
+            std::cout << WRONG "X" RESET "> ";
         std::cout.flush();
+        #endif
     }
 }

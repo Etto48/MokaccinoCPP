@@ -61,7 +61,7 @@ namespace audio
     int output_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {//we assume that data is already binary
         static std::string encoded;
-        if(!output_buffer.try_pull(encoded))
+        if(not output_buffer.try_pull(encoded))
             return 0;
         
         b64_decode((unsigned char*)encoded.c_str(),(unsigned int)encoded.length(),(unsigned char*)output);
@@ -165,7 +165,7 @@ namespace audio
             auto item = audio_queue.pull();
             auto args = parsing::msg_split(item.msg);
             std::unique_lock lock(name_mutex);
-            if(args.size() == 1 && args[0] == "AUDIOSTART")
+            if(args.size() == 1 and args[0] == "AUDIOSTART")
             {
                 if(audio_buddy.name.length() == 0)
                 {//no user connected for voice
@@ -176,17 +176,17 @@ namespace audio
                 {//user already connected for voice
                     network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
                 }
-            }else if(args.size() == 1 && args[0] == "AUDIOACCEPT" && pending_name == item.src && audio_buddy.name.length()==0)
+            }else if(args.size() == 1 and args[0] == "AUDIOACCEPT" and pending_name == item.src and audio_buddy.name.length()==0)
             {
                 audio_buddy = {item.src,item.src_endpoint};
                 pending_name = "";
                 comms_init();
-            }else if(args.size() == 1 && args[0] == "AUDIOSTOP" && (audio_buddy.name == item.src || pending_name == item.src))
+            }else if(args.size() == 1 and args[0] == "AUDIOSTOP" and (audio_buddy.name == item.src or pending_name == item.src))
             {
                 comms_stop();
-            }else if(args.size() == 2 && args[0] == "AUDIO" && audio_buddy.name == item.src)
+            }else if(args.size() == 2 and args[0] == "AUDIO" and audio_buddy.name == item.src)
             {
-                if(!output_buffer.try_push(args[1]))
+                if(not output_buffer.try_push(args[1]))
                     output_dropped_frames++;
             }else
             {
@@ -206,7 +206,7 @@ namespace audio
     void start_call(const std::string& name)
     {
         std::unique_lock lock(name_mutex);
-        if(DEBUG && name == "loopback")
+        if(DEBUG and name == "loopback")
         {
             audio_buddy = {"loopback",network::udp::connection_map["loopback"].endpoint};
             comms_init();

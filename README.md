@@ -17,11 +17,13 @@ Mokaccino is a simple P2P application written in C++ capable of creating unstruc
 You will need both Boost and PortAudio compiled and installed where Cmake can find them
 
 Then you can run the following commands inside the project directory
+
 ```shell
 mkdir build
 cmake -B build
 cmake --build build [--config Release]
 ```
+
 ## Configuration
 
 A configuration file may be provided in the [TOML](https://toml.io) file format
@@ -38,6 +40,10 @@ port = 23232
 
 # you will connect to this list of servers automatically
 autoconnect = ["server1.com","server2.net:24242"]
+
+[terminal]
+# you will run these commands after startup
+startup_commands = ["msg server1.com hello\ everybody","voice start server2.net"]
 ```
 
 ## Network protocol
@@ -50,7 +56,6 @@ Mokaccino uses an ascii protocol over UDP (because UDP hole punching is easier t
 - Tokens are separated with one or more whitespaces
 - When you want to include a space in a token you must escape it with `'\'`
 - When you want to include a `'\'` in a token you must escape it with another one
-
 
 ### Connection
 
@@ -72,7 +77,7 @@ We will call the middle peer server and the two peers A and B
 
 A to SERVER: `REQUEST <B's username>`
 
-Then if the server is connected to a user with the requested username 
+Then if the server is connected to a user with the requested username
 
 SERVER to B: `REQUESTED <A's username> <A's IP>:<A's port>`
 
@@ -84,7 +89,7 @@ SERVER to A: `FAIL <B's username>`
 
 #### Disconnection
 
-If a peer you are connected with sends you `DISCONNECT [reason]` you must consider it disconnected and stop sending messages to it, the reason can be omitted 
+If a peer you are connected with sends you `DISCONNECT [reason]` you must consider it disconnected and stop sending messages to it, the reason can be omitted
 
 ### Text messages
 
