@@ -70,9 +70,9 @@ jobs:
     - name: Cache CMake cache
       id: cmake-cache
       using: actions/cache@v3
-        with: 
-          path: ${{github.workspace}}/build
-          key: ${{ runner.os }}-cmake-build
+      with: 
+        path: ${{github.workspace}}/build
+        key: ${{ runner.os }}-cmake-build
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
