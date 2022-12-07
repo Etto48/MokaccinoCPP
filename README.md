@@ -124,5 +124,6 @@ The audio data will be sent with the following format
 
 - [Boost](https://www.boost.org/)
 - [PortAudio](http://portaudio.com/)
+- [Opus](https://www.opus-codec.org/)
 - [Toml++](https://github.com/marzer/tomlplusplus)
 - [Base64](https://github.com/joedf/base64.c)
