@@ -3,6 +3,7 @@
 #include <mutex>
 #include <string>
 #include <exception>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio/ip/udp.hpp>
 
 namespace network
@@ -25,6 +26,11 @@ namespace network
             std::string name;
             boost::asio::ip::udp::endpoint endpoint;
             std::string tmpData;
+            boost::posix_time::ptime ping_sent;
+            unsigned short last_ping_id = 0;
+            boost::posix_time::time_duration last_latency;
+            boost::posix_time::time_duration avg_latency;
+            unsigned short offline_strikes = 0;
         };
     private:
         /**

@@ -8,6 +8,7 @@
 #include "logging/supervisor/supervisor.hpp"
 #include "logging/logging.hpp"
 #include "terminal/terminal.hpp"
+#include "network/timecheck/timecheck.hpp"
 #include "network/connection/connection.hpp"
 #include "network/messages/messages.hpp"
 #include "network/udp/udp.hpp"
@@ -108,6 +109,7 @@ int main(int argc, char* argv[])
         network::udp::init(config["network"]["port"].value_or(args["port"].as<uint16_t>()));
         network::connection::init(config["network"]["username"].value_or(username));
         network::messages::init();
+        network::timecheck::init();
         terminal::init();
         audio::init();
         

@@ -1,5 +1,6 @@
 #include "connection.hpp"
 #include "../../defines.hpp"
+#include "../../ansi_escape.hpp"
 #include <map>
 #include "../../multithreading/multithreading.hpp"
 #include "../../parsing/parsing.hpp"
@@ -82,11 +83,33 @@ namespace network::connection
                 }
                 else if(args[0] == "FAIL" and args.size() == 2)
                 {
-                    
+                    //TODO: handle not found
                 }
                 else if(DEBUG and args[0] == "TEST")
                 {
                     logging::connection_test_log(item);
+                }
+                else if(args[0] == "PING" and args.size() == 2)
+                {
+                    udp::send(parsing::compose_message({"PONG",args[1]}),item.src_endpoint);
+                    //logging::log("DBG","Handled ping from " HIGHLIGHT + item.src + RESET);
+                }
+                else if(args[0] == "PONG" and args.size() == 2)
+                {
+                    auto now = boost::posix_time::microsec_clock::local_time();
+                    auto& data = udp::connection_map[item.src];
+                    if(std::to_string(data.last_ping_id) == args[1])
+                    {//it's the last ping
+                        data.last_ping_id = 0; // ping received
+                        data.last_latency = now - data.ping_sent;
+                        data.offline_strikes = 0; // no strikes, just packet lost
+                        #define MOVING_AVG_FACTOR 7
+                        if(data.avg_latency == boost::posix_time::time_duration{})
+                            data.avg_latency = data.last_latency;
+                        else
+                            data.avg_latency = (data.avg_latency * MOVING_AVG_FACTOR / 10) + (data.last_latency * (10-MOVING_AVG_FACTOR) / 10);
+                        //logging::log("DBG","Handled pong from " HIGHLIGHT + item.src + RESET);
+                    }
                 }
                 else {
                     logging::log("DBG","Dropped "+ args[0] +" from "+ item.src_endpoint.address().to_string() +":"+ std::to_string(item.src_endpoint.port()));
@@ -104,6 +127,8 @@ namespace network::connection
         udp::register_queue("REQUEST",connection_queue,true);
         udp::register_queue("REQUESTED",connection_queue,true);
         udp::register_queue("FAIL",connection_queue,true);
+        udp::register_queue("PING",connection_queue,true);
+        udp::register_queue("PONG",connection_queue,true);
         if(DEBUG)
             udp::register_queue("TEST",connection_queue,true);
         multithreading::add_service("connection",connection);

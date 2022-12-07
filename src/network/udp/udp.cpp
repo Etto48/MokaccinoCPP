@@ -1,7 +1,9 @@
 #include "udp.hpp"
 #include "../../defines.hpp"
+#include "../../ansi_escape.hpp"
 #include <boost/asio/io_service.hpp>
 #include <boost/date_time.hpp>
+#include <boost/thread.hpp>
 #include "../../multithreading/multithreading.hpp"
 #include "../../logging/logging.hpp"
 #include "../../parsing/parsing.hpp"
@@ -69,12 +71,12 @@ namespace network::udp
                 queue->second.queue->push({name,endpoint,msg});
             }else
             {
-                logging::log("DBG","Message refused from anonymous user");
+                logging::log("DBG","Message \"" HIGHLIGHT + keyword + RESET "\" refused from anonymous user (" HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET ")");
             }
         }
         else
         {
-            logging::log("DBG","Message keyword \""+keyword+"\" not recognized");
+            logging::log("DBG","Message keyword \"" HIGHLIGHT +keyword+ RESET "\" not recognized");
         }
     }
     void udp_listener()
@@ -84,7 +86,8 @@ namespace network::udp
             auto len = socket.available();
             if(len==0)
             {
-                boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+                boost::this_thread::interruption_point();
+                boost::this_thread::yield(); // not wasting time now
                 continue;
             }
             auto data = new char[len+1];
@@ -156,7 +159,7 @@ namespace network::udp
     {
         {
             std::unique_lock lock(requested_clients_mutex);
-            requested_clients[name] = boost::posix_time::second_clock::local_time();
+            requested_clients[name] = boost::posix_time::microsec_clock::local_time();
         }
         send(parsing::compose_message({"REQUEST",name}),connection_map.server());
     }

@@ -152,6 +152,7 @@ namespace terminal::commands
                     auto user_info = network::udp::connection_map[args[2]];
                     logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
                     logging::log("MSG","\tAddress: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
+                    logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(user_info.avg_latency.total_milliseconds()) + RESET "ms");
                     return true;
                 }catch(network::DataMap::NotFound&)
                 {
