@@ -197,9 +197,6 @@ namespace audio
     }
     void comms_stop()
     {
-        opus_encoder_destroy(encoder);
-        opus_decoder_destroy(decoder);
-
         Pa_StopStream(input_stream);
         Pa_StopStream(output_stream);
 
@@ -207,6 +204,10 @@ namespace audio
         Pa_CloseStream(output_stream);
 
         Pa_Terminate();
+        
+        opus_encoder_destroy(encoder);
+        opus_decoder_destroy(decoder);
+
         audio_buddy.name = "";
         pending_name = "";
         input_stream = nullptr;
@@ -217,14 +218,28 @@ namespace audio
         if(output_decoder_buffer != nullptr)
             delete[] output_decoder_buffer;
     }
+    void _stop_call()
+    {
+        if(audio_buddy.name.length() != 0)
+        {
+            network::udp::send(parsing::compose_message({"AUDIOSTOP"}),audio_buddy.endpoint);\
+            comms_stop();
+        }
+    }
     void audio_sender() {
         while(true)
         {
             auto encoded = input_buffer.pull();
             std::unique_lock lock(name_mutex);
-            if(audio_buddy.name.length() > 0)
-            {//we are connected
-                network::udp::send(parsing::compose_message({"AUDIO",encoded}),audio_buddy.endpoint);
+            if(network::udp::connection_map.check_user(audio_buddy.name))
+            {
+                if(audio_buddy.name.length() > 0)
+                {//we are connected
+                    network::udp::send(parsing::compose_message({"AUDIO",encoded}),audio_buddy.endpoint);
+                }
+            }else
+            {// the other user was disconnected somehow
+                _stop_call();
             }
         }
     }
@@ -288,13 +303,10 @@ namespace audio
         }
         
     }
+
     void stop_call()
     {
         std::unique_lock lock(name_mutex);
-        if(audio_buddy.name.length() != 0)
-        {
-            network::udp::send(parsing::compose_message({"AUDIOSTOP"}),audio_buddy.endpoint);\
-            comms_stop();
-        }
+        _stop_call();
     }
 }
