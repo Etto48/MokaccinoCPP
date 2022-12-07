@@ -155,12 +155,12 @@ namespace terminal::commands
                     auto user_info = network::udp::connection_map[args[2]];
                     logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
                     logging::log("MSG","\tAddress: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
-                    auto ms = user_info.avg_latency.total_milliseconds();
+                    auto ms = user_info.avg_latency.total_milliseconds() / 2;
                     if(ms != 0)
                         logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(ms) + RESET "ms");
                     else
                     {
-                        auto us = user_info.avg_latency.total_microseconds();
+                        auto us = user_info.avg_latency.total_microseconds() / 2;
                         logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(us) + RESET "us");
                     }
                     return true;

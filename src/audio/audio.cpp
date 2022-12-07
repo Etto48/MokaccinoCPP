@@ -134,7 +134,7 @@ namespace audio
             
             input_encoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
             output_decoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
-            b64_encoded_buffer_data = new unsigned char[ENCODED_FRAMES_SIZE];
+            b64_encoded_buffer_data = new unsigned char[ENCODED_FRAMES_SIZE + 1];
 
             int error = 0;
             encoder = opus_encoder_create(SAMPLE_RATE,1,OPUS_APPLICATION_VOIP,&error);
@@ -189,9 +189,9 @@ namespace audio
                 delete [] output_decoder_buffer;
                 output_decoder_buffer = nullptr;
             }
-            if(b64_encoded_buffer_data)
+            if(b64_encoded_buffer_data != nullptr)
             {
-                delete[] b64_encoded_buffer_data;
+                delete [] b64_encoded_buffer_data;
                 b64_encoded_buffer_data = nullptr;
             }
 
@@ -218,17 +218,17 @@ namespace audio
 
         if(input_encoder_buffer != nullptr)
         {
-            delete[] input_encoder_buffer;
+            delete [] input_encoder_buffer;
             input_encoder_buffer = nullptr;
         }
         if(output_decoder_buffer != nullptr)
         {
-            delete[] output_decoder_buffer;
+            delete [] output_decoder_buffer;
             output_decoder_buffer = nullptr;
         }
         if(b64_encoded_buffer_data != nullptr)
         {
-            delete[] b64_encoded_buffer_data;
+            delete [] b64_encoded_buffer_data;
             b64_encoded_buffer_data = nullptr;
         }
     }
