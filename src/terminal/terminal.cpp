@@ -40,7 +40,7 @@ namespace terminal
             std::unique_lock command_lock(command_function_mutex);
             if(args.size() == 1)
             {//list all commands
-                for(auto [command_name,info]: command_function_map)
+                for(auto& [command_name,info]: command_function_map)
                 {
                     logging::log("MSG","- " + info.name);
                     logging::log("MSG","\t" + info.help_text);
@@ -115,6 +115,7 @@ namespace terminal
     
     void terminal()
     {
+        #ifndef _TEST
         if(not IsDebuggerPresent())
         {
             while(not exit_called)
@@ -129,6 +130,7 @@ namespace terminal
                     last_ret = process_command(line);
             }
         }
+        #endif
     }
     void init()
     {
@@ -162,6 +164,12 @@ namespace terminal
             "Make the calling process sleep for a number of seconds (useful with config files)",
             commands::sleep,
             2,2});
+        add_command(CommandFunction{
+            "user",
+            "(list)|(info <username>)",
+            "Get a list of connected users or the address about a specific user",
+            commands::user,
+            2,3});
         multithreading::add_service("terminal",terminal);
     }
 }

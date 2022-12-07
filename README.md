@@ -11,10 +11,11 @@ Mokaccino is a simple P2P application written in C++ capable of creating unstruc
 - [Cmake](https://cmake.org/)
 - [Boost library](https://www.boost.org/)
 - [PortAudio library](http://portaudio.com/)
+- [Opus library](https://www.opus-codec.org/)
 
 ### Instructions
 
-You will need both Boost and PortAudio compiled and installed where Cmake can find them
+You will need both Boost, PortAudio and Opus compiled and installed where Cmake can find them
 
 Then you can run the following commands inside the project directory
 

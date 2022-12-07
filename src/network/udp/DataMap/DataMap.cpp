@@ -109,4 +109,14 @@ namespace network
         std::unique_lock lock(obj);
         return _op_sqbr(server_name).endpoint;
     }
+    std::vector<std::pair<std::string,boost::asio::ip::udp::endpoint>> DataMap::get_connected_users()
+    {
+        std::unique_lock lock(obj);
+        std::vector<std::pair<std::string,boost::asio::ip::udp::endpoint>> ret;
+        for(auto& [endpoint, name]:endpoint_name)
+        {
+            ret.emplace_back(name,endpoint);
+        }
+        return ret;
+    }
 }

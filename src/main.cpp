@@ -140,13 +140,17 @@ int main(int argc, char* argv[])
         }
         //tests
         #ifdef _TEST
-        return test();
+        int ret = test();
+        multithreading::request_termination();
+        #else
+        int ret = 0;
         #endif
 
         //WAIT FOR EXIT
         multithreading::wait_termination();
         multithreading::stop_all();
         multithreading::join();
+        return ret;
     }
     return 0;
 }

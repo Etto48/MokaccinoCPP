@@ -58,6 +58,19 @@ namespace audio
     unsigned long long input_dropped_frames = 0;
     unsigned long long output_dropped_frames = 0;
 
+    inline unsigned long rms(const void *input, unsigned long frame_count)
+    {
+        unsigned long ret = 0;
+        for(unsigned long i = 0; i < frame_count; i++)
+        {
+            auto& d = ((AUDIO_DATA_TYPE*)input)[i];
+            ret += d*d;
+        }
+        ret /= frame_count;
+        return ret;
+    }
+
+
     int input_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {
         static EncodedBuffer encoded;
@@ -66,6 +79,8 @@ namespace audio
             input_dropped_frames++;
             return 0;
         }
+        //if(rms(input,frameCount) <= 2000)
+        //    return 0;
         auto encoded_size = opus_encode(encoder,(opus_int16*)input,frameCount,input_encoder_buffer,BUFFER_OPUS_SIZE);
         if(encoded_size < 0)
             return 0;

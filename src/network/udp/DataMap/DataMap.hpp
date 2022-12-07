@@ -119,6 +119,12 @@ namespace network
          * @return the endpoint of the peer
          */
         boost::asio::ip::udp::endpoint server();
+        /**
+         * @brief return a vector of connected users and their ip and port
+         * 
+         * @return a vector containing pairs of username, endpoint
+         */
+        std::vector<std::pair<std::string,boost::asio::ip::udp::endpoint>> get_connected_users();
     private:
         bool _add_user(const std::string& name,const boost::asio::ip::udp::endpoint& endpoint);
         bool _remove_user(const std::string& name);

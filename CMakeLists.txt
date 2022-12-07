@@ -14,7 +14,7 @@ set(Boost_DEBUG OFF)
 #packages
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
 find_package(portaudio REQUIRED)
-find_package(opus REQUIRED)
+find_package(Opus REQUIRED)
 
 #debug
 if(NOT CMAKE_BUILD_TYPE)
@@ -39,13 +39,17 @@ add_executable(Mokaccino ${sources})
 
 #testing
 enable_testing()
+set(STARTING_TEST_PORT 23235)
 foreach(test IN ITEMS ${tests})
     get_filename_component(TEST_NAME ${test} NAME_WE)
     message(STATUS "Adding test " ${TEST_NAME})
     add_executable(test-${TEST_NAME} ${sources} ${test})
     target_compile_definitions(test-${TEST_NAME} PUBLIC _TEST PUBLIC NO_ANSI_ESCAPE)
     target_include_directories(test-${TEST_NAME} PUBLIC "src")
-    add_test(NAME test-${TEST_NAME} COMMAND $<TARGET_FILE:test-${TEST_NAME}> --config ${CMAKE_SOURCE_DIR}/example.cfg)
+    add_test(NAME test-${TEST_NAME} COMMAND $<TARGET_FILE:test-${TEST_NAME}> --config ${CMAKE_SOURCE_DIR}/example.cfg --port ${STARTING_TEST_PORT})
+    math(EXPR STARTING_TEST_PORT "${STARTING_TEST_PORT}+1" OUTPUT_FORMAT DECIMAL)
+    set(TESTS ${TESTS} test-${TEST_NAME})
 endforeach()
+set_tests_properties(${TESTS} PROPERTIES TIMEOUT 10)
 
 

@@ -126,4 +126,49 @@ namespace terminal::commands
             return false;
         }
     }
+
+    bool user(const std::vector<std::string>& args)
+    {
+        if(args[1] == "list")
+        {
+            if(args.size() == 2)
+            {
+                auto users = network::udp::connection_map.get_connected_users();
+                for(auto& [name, endpoint]: users)
+                {
+                    logging::log("MSG",HIGHLIGHT + name + RESET);
+                }
+                return true;
+            }else
+            {
+                logging::log("ERR","Too many arguments, use \"help user\" for more info");
+                return false;
+            }
+        }else if(args[1] == "info")
+        {
+            if(args.size() == 3)
+            {
+                try{
+                    auto user_info = network::udp::connection_map[args[2]];
+                    logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
+                    logging::log("MSG","\tAddress: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
+                    return true;
+                }catch(network::DataMap::NotFound&)
+                {
+                    logging::log("ERR","User not connected, use \"help user\" and \"help connect\" for more info");
+                    return false;
+                }
+            }
+            else
+            {
+                logging::log("ERR","No username was provided, use \"help user\" for more info");
+                return false;
+            }
+
+        }else
+        {
+            logging::log("ERR","The second argument must be list or info, use \"help user\" for more info");
+            return false;
+        }
+    }
 };

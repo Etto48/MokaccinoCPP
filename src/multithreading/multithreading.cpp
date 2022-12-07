@@ -2,10 +2,13 @@
 #include "../defines.hpp"
 #include <map>
 #include <mutex>
+#include <iostream>
 #include <condition_variable>
 #include <boost/thread/thread.hpp>
 #include <boost/asio/signal_set.hpp>
 #include "../logging/logging.hpp"
+
+#define MAX_TRY_FOR_JOIN 3
 
 namespace multithreading
 {
@@ -25,8 +28,20 @@ namespace multithreading
     {
         for(auto& th : services)
         {
-            th.second.join();
+            unsigned int try_n = 0;
+            while(not th.second.try_join_for(boost::chrono::seconds(1)))
+            {
+                if(try_n >= MAX_TRY_FOR_JOIN)
+                {
+                    logging::log("DBG","Failed to join thread " + th.first);
+                    break;
+                }
+                logging::log("DBG","Thread " + th.first + " is not stopping, retrying ("+std::to_string(try_n+1)+"/"+std::to_string(MAX_TRY_FOR_JOIN)+")...");
+                th.second.interrupt();
+                try_n ++;
+            }
         }
+        logging::log("DBG","Joined every thread");
     }
     void stop(std::string name)
     {
@@ -38,6 +53,7 @@ namespace multithreading
         {
             th.second.interrupt();
         }
+        logging::log("DBG","Requested interrupt for every thread");
     }
     size_t get_count()
     {
@@ -52,12 +68,14 @@ namespace multithreading
         std::unique_lock lock(termination_mutex);
         termination_required_flag = true;
         termination_required.notify_all();
+        logging::log("DBG","Termination requested");
     }
     void wait_termination()
     {
         std::unique_lock lock(termination_mutex);
         while(not termination_required_flag)
             termination_required.wait(lock);
+        logging::log("DBG","Termination initiating");
     }
     std::string get_current_thread_name()
     {
