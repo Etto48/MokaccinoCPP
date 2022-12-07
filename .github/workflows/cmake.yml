@@ -69,7 +69,7 @@ jobs:
 
     - name: Cache CMake cache
       id: cmake-cache
-      using: actions/cache@v3
+      uses: actions/cache@v3
       with: 
         path: ${{github.workspace}}/build
         key: ${{ runner.os }}-cmake-build
