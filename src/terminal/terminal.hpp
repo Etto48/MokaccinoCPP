@@ -28,7 +28,7 @@ namespace terminal
          * @brief funciton pointer to call when the command is entered, the first arg is always equal to name
          * 
          */
-        bool (*function)(const std::vector<std::string>& args) = nullptr;
+        bool (*function)(const std::string& line, const std::vector<std::string>& args) = nullptr;
         /**
          * @brief minimum argument number, if set to 0 is ignored
          * 
@@ -49,7 +49,7 @@ namespace terminal
          * @param min_argn minimum argument number, if set to 0 is ignored
          * @param max_argn maximum argument number, if set to 0 is ignored
          */
-        CommandFunction(const std::string& name, const std::string& usage, const std::string& help_text, bool (*function)(const std::vector<std::string>& args), unsigned int min_argn = 0, unsigned int max_argn = 0):
+        CommandFunction(const std::string& name, const std::string& usage, const std::string& help_text, bool (*function)(const std::string& line, const std::vector<std::string>& args), unsigned int min_argn = 0, unsigned int max_argn = 0):
             name(name),
             usage(usage),
             help_text(help_text),

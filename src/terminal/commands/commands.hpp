@@ -4,10 +4,10 @@
 
 namespace terminal::commands
 {
-    bool connect(const std::vector<std::string>& args);
-    bool disconnect(const std::vector<std::string>& args);
-    bool msg(const std::vector<std::string>& args);
-    bool voice(const std::vector<std::string>& args);
-    bool sleep(const std::vector<std::string>& args);
-    bool user(const std::vector<std::string>& args);
+    bool connect(const std::string& line, const std::vector<std::string>& args);
+    bool disconnect(const std::string& line, const std::vector<std::string>& args);
+    bool msg(const std::string& line, const std::vector<std::string>& args);
+    bool voice(const std::string& line, const std::vector<std::string>& args);
+    bool sleep(const std::string& line, const std::vector<std::string>& args);
+    bool user(const std::string& line, const std::vector<std::string>& args);
 };

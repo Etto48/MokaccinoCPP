@@ -12,7 +12,7 @@
 
 namespace terminal::commands
 {
-    bool connect(const std::vector<std::string>& args)
+    bool connect(const std::string& line, const std::vector<std::string>& args)
     {
         if(args[1] == "hostname")
         {
@@ -48,7 +48,7 @@ namespace terminal::commands
         return true;
     }
 
-    bool disconnect(const std::vector<std::string>& args)
+    bool disconnect(const std::string& line, const std::vector<std::string>& args)
     {
         if(network::udp::connection_map.check_user(args[1]))
         {
@@ -64,11 +64,14 @@ namespace terminal::commands
         }
     }
 
-    bool msg(const std::vector<std::string>& args)
+    bool msg(const std::string& line, const std::vector<std::string>& args)
     {
         if(network::udp::connection_map.check_user(args[1]))
         {
-            network::messages::send(args[1],args[2]);
+            std::string message_text = line.substr(line.find(args[0]));
+            message_text = message_text.substr(message_text.find(args[1]));
+            message_text = message_text.substr(message_text.find(args[2]));
+            network::messages::send(args[1],message_text);
             return true;
         }
         else
@@ -78,7 +81,7 @@ namespace terminal::commands
         }
     }
 
-    bool voice(const std::vector<std::string>& args)
+    bool voice(const std::string& line, const std::vector<std::string>& args)
     {
         if(args[1] == "start")
         {
@@ -112,7 +115,7 @@ namespace terminal::commands
         }
     }
 
-    bool sleep(const std::vector<std::string>& args)
+    bool sleep(const std::string& line, const std::vector<std::string>& args)
     {
         try
         {
@@ -127,7 +130,7 @@ namespace terminal::commands
         }
     }
 
-    bool user(const std::vector<std::string>& args)
+    bool user(const std::string& line, const std::vector<std::string>& args)
     {
         if(args[1] == "list")
         {
@@ -152,7 +155,14 @@ namespace terminal::commands
                     auto user_info = network::udp::connection_map[args[2]];
                     logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
                     logging::log("MSG","\tAddress: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
-                    logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(user_info.avg_latency.total_milliseconds()) + RESET "ms");
+                    auto ms = user_info.avg_latency.total_milliseconds();
+                    if(ms != 0)
+                        logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(ms) + RESET "ms");
+                    else
+                    {
+                        auto us = user_info.avg_latency.total_microseconds();
+                        logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(us) + RESET "us");
+                    }
                     return true;
                 }catch(network::DataMap::NotFound&)
                 {

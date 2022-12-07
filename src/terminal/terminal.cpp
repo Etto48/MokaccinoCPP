@@ -42,17 +42,17 @@ namespace terminal
             {//list all commands
                 for(auto& [command_name,info]: command_function_map)
                 {
-                    logging::log("MSG","- " + info.name);
+                    logging::log("MSG","- " HIGHLIGHT + info.name + RESET);
                     logging::log("MSG","\t" + info.help_text);
                     logging::log("MSG","");
                 }
-                logging::log("MSG","- help");
+                logging::log("MSG","- " HIGHLIGHT "help" RESET);
                 logging::log("MSG","\tShow a list of commands or help about a specific command");
                 logging::log("MSG","");
-                logging::log("MSG","- exit");
+                logging::log("MSG","- " HIGHLIGHT "exit" RESET);
                 logging::log("MSG","\tClose the program");
                 logging::log("MSG","");
-                logging::log("MSG","Use help <command> to show more info about a specific command");
+                logging::log("MSG","Use \"help <command>\" to show more info about a specific command");
                 return true;
             }
             else
@@ -61,28 +61,28 @@ namespace terminal
                 if(command_info_iter != command_function_map.end())
                 {
                     auto& info = command_info_iter->second;
-                    logging::log("MSG","- " + info.name);
+                    logging::log("MSG","- " HIGHLIGHT + info.name + RESET);
                     logging::log("MSG","\tUsage: "+info.name+" "+info.usage);
                     logging::log("MSG","\t" + info.help_text);
                     return true;
                 }
                 else if(args[1] == "help")
                 {
-                    logging::log("MSG","- help");
+                    logging::log("MSG","- " HIGHLIGHT "help" RESET);
                     logging::log("MSG","\tUsage: help [command]");
                     logging::log("MSG","\tShow a list of commands or help about a specific command");
                     return true;
                 }
                 else if(args[1] == "exit")
                 {
-                    logging::log("MSG","- exit");
+                    logging::log("MSG","- " HIGHLIGHT "exit" RESET);
                     logging::log("MSG","\tUsage: exit");
                     logging::log("MSG","\tClose the program");
                     return true;
                 }
                 else
                 {
-                    logging::log("ERR",args[1] + " is not a valid command");
+                    logging::log("ERR","\"" HIGHLIGHT + args[1] + RESET "\" is not a valid command");
                     return false;
                 }
             }
@@ -96,7 +96,7 @@ namespace terminal
                 auto& cmd_info = command_info_iter->second;
                 if((cmd_info.min_argn == 0 or cmd_info.min_argn <= args.size()) and (cmd_info.max_argn == 0 or cmd_info.max_argn >= args.size()))
                 {//successfully called the command
-                    return (*cmd_info.function)(args);
+                    return (*cmd_info.function)(line,args);
                 }
                 else
                 {//syntax error
@@ -149,9 +149,9 @@ namespace terminal
         add_command(CommandFunction{
             "msg",
             "<username> <message>",
-            "Send a text message to the specified user",
+            "Send a text message to the specified user, you can write the message without escaping whitespaces",
             commands::msg,
-            3,3});
+            3,0});
         add_command(CommandFunction{
             "voice",
             "(start <username>)|(stop)",

@@ -44,7 +44,7 @@ autoconnect = ["server1.com","server2.net:24242"]
 
 [terminal]
 # you will run these commands after startup
-startup_commands = ["msg server1.com hello\ everybody","voice start server2.net"]
+startup_commands = ["msg server1.com hello everybody","voice start server2.net"]
 ```
 
 ## Network protocol
@@ -91,6 +91,10 @@ SERVER to A: `FAIL <B's username>`
 #### Disconnection
 
 If a peer you are connected with sends you `DISCONNECT [reason]` you must consider it disconnected and stop sending messages to it, the reason can be omitted
+
+### Ping
+
+You can ping another peer you are connected with using `PING <number>`, where number can be any number that is representable in 16b, the other peer must respond with `PONG <number>` with the same number of the ping message
 
 ### Text messages
 

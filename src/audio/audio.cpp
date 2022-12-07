@@ -36,21 +36,19 @@ namespace audio
     constexpr opus_int32 SAMPLE_RATE = 48000;
     
     constexpr unsigned long FRAMES_PER_BUFFER = 120;
-    constexpr unsigned long ENCODED_FRAMES_SIZE = 80;
-
+    
     #define AUDIO_DATA_TYPE int16_t
     #define AUDIO_DATA_TYPE_PA paInt16
 
     constexpr opus_int32 BUFFER_OPUS_SIZE = FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)/4;
+    unsigned long ENCODED_FRAMES_SIZE = b64e_size(BUFFER_OPUS_SIZE);
 
     struct DecodedBuffer
     {
         uint8_t data[FRAMES_PER_BUFFER*sizeof(AUDIO_DATA_TYPE)];
     };
-    struct EncodedBuffer
-    {
-        unsigned char data[ENCODED_FRAMES_SIZE+1];
-    };
+    
+    unsigned char* b64_encoded_buffer_data = nullptr;
 
     boost::sync_bounded_queue<std::string> input_buffer{256};
     boost::sync_bounded_queue<std::string> output_buffer{256};
@@ -73,7 +71,6 @@ namespace audio
 
     int input_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {
-        static EncodedBuffer encoded;
         if(input_buffer.full()) // dropping frames
         {
             input_dropped_frames++;
@@ -84,8 +81,8 @@ namespace audio
         auto encoded_size = opus_encode(encoder,(opus_int16*)input,frameCount,input_encoder_buffer,BUFFER_OPUS_SIZE);
         if(encoded_size < 0)
             return 0;
-        b64_encode(input_encoder_buffer,encoded_size,encoded.data);
-        input_buffer.push(std::string((char*)encoded.data));
+        b64_encode(input_encoder_buffer,encoded_size,b64_encoded_buffer_data);
+        input_buffer.push(std::string((char*)b64_encoded_buffer_data));
         return 0;
     }
     int output_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
@@ -137,6 +134,7 @@ namespace audio
             
             input_encoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
             output_decoder_buffer = new unsigned char[BUFFER_OPUS_SIZE];
+            b64_encoded_buffer_data = new unsigned char[ENCODED_FRAMES_SIZE];
 
             int error = 0;
             encoder = opus_encoder_create(SAMPLE_RATE,1,OPUS_APPLICATION_VOIP,&error);
@@ -191,6 +189,11 @@ namespace audio
                 delete [] output_decoder_buffer;
                 output_decoder_buffer = nullptr;
             }
+            if(b64_encoded_buffer_data)
+            {
+                delete[] b64_encoded_buffer_data;
+                b64_encoded_buffer_data = nullptr;
+            }
 
             logging::audio_call_error_log(e.why);
         }
@@ -214,9 +217,20 @@ namespace audio
         output_stream = nullptr;
 
         if(input_encoder_buffer != nullptr)
+        {
             delete[] input_encoder_buffer;
+            input_encoder_buffer = nullptr;
+        }
         if(output_decoder_buffer != nullptr)
+        {
             delete[] output_decoder_buffer;
+            output_decoder_buffer = nullptr;
+        }
+        if(b64_encoded_buffer_data != nullptr)
+        {
+            delete[] b64_encoded_buffer_data;
+            b64_encoded_buffer_data = nullptr;
+        }
     }
     void _stop_call()
     {
