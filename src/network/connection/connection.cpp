@@ -5,12 +5,14 @@
 #include "../../multithreading/multithreading.hpp"
 #include "../../parsing/parsing.hpp"
 #include "../../logging/logging.hpp"
+#include "../../terminal/terminal.hpp"
 #include "../udp/udp.hpp"
 #include "../MessageQueue/MessageQueue.hpp"
 namespace network::connection
 {
     MessageQueue connection_queue;
     std::string username;
+    std::vector<std::string> whitelist;
     struct StatusEntry
     {
         std::string expected_message;
@@ -18,6 +20,21 @@ namespace network::connection
     };
     std::mutex status_map_mutex;
     std::map<boost::asio::ip::udp::endpoint,StatusEntry> status_map;
+    bool check_whitelist(const std::string& name)
+    {
+        for(auto& a: whitelist)
+        {
+            if(a==name)
+                return true;
+        }
+        return false;
+    }
+    void accept_connection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name)
+    {
+        status_map[endpoint] = {"CONNECTED",name};
+        udp::send(parsing::compose_message({"HANDSHAKE",username}),endpoint);
+        logging::log("DBG","Handled CONNECT from "+endpoint.address().to_string()+":"+std::to_string(endpoint.port()));
+    }
     void connection()
     {
         while(true)
@@ -29,9 +46,25 @@ namespace network::connection
                 std::unique_lock lock(status_map_mutex);
                 if(args[0] == "CONNECT" and args.size() == 2)
                 {
-                    status_map[item.src_endpoint] = {"CONNECTED",args[1]};
-                    udp::send(parsing::compose_message({"HANDSHAKE",username}),item.src_endpoint);
-                    logging::log("DBG","Handled CONNECT from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
+                    if(check_whitelist(args[1]))
+                    {
+                        accept_connection(item.src_endpoint,args[1]);
+                    }
+                    else
+                        terminal::input(
+                            "User \"" HIGHLIGHT + args[1] + RESET 
+                            "\" (" HIGHLIGHT +item.src_endpoint.address().to_string()+ RESET 
+                            ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET 
+                            ") requested to connect, accept? (y/n)",
+                            [args,item](const std::string& input){
+                                if(input == "Y" or input == "y")
+                                    accept_connection(item.src_endpoint,args[1]);
+                                else
+                                {
+                                    udp::send(parsing::compose_message({"DISCONNECT","connection refused"}),item.src_endpoint);
+                                    logging::log("MSG","Connection refused from \"" HIGHLIGHT +args[1]+ RESET "\"");
+                                }
+                            });
                 }
                 else if(args[0] == "HANDSHAKE" and args.size() == 2 and status_map[item.src_endpoint].expected_message == "HANDSHAKE" and status_map[item.src_endpoint].name == args[1])
                 {
@@ -117,9 +150,10 @@ namespace network::connection
             }
         }
     }
-    void init(std::string local_username)
+    void init(std::string local_username, const std::vector<std::string>& whitelist)
     {
         username = local_username;
+        network::connection::whitelist = whitelist;
         udp::register_queue("CONNECT",connection_queue,false);
         udp::register_queue("HANDSHAKE",connection_queue,false);
         udp::register_queue("CONNECTED",connection_queue,false);

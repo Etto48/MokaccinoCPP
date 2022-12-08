@@ -40,6 +40,11 @@ namespace logging
         {
             file_prefix = "[ERROR] ";
             terminal_prefix = ERR_TAG "[ERROR]" RESET " ";
+            verbosity_required = 0;   
+        }else if(log_type=="PRM")
+        {
+            file_prefix = "[PROMPT] ";
+            terminal_prefix = PROMPT_TAG "[PROMPT]" RESET " ";
             verbosity_required = 0;
         }else if(log_type == "MSG")
         {
@@ -56,25 +61,38 @@ namespace logging
         if(verbosity >= verbosity_required)
         {
             std::unique_lock lock(output_mutex);
-            if(terminal_prefix == last_prefix)
+            if(log_type == "PRM")
             {
-                terminal_prefix = std::string(parsing::strip_ansi(last_prefix).length(),' ');
-                file_prefix = terminal_prefix;
+                #ifdef NO_ANSI_ESCAPE
+                std::cout << terminal_prefix << parsing::strip_ansi(message) << ": ";
+                #else
+                std::cout << "\r" CLEAR_LINE << terminal_prefix << message << ": ";
+                #endif
+                std::cout.flush();
+                
             }
             else
-                last_prefix = terminal_prefix;
-            #ifdef NO_ANSI_ESCAPE
-            std::cout << terminal_prefix << parsing::strip_ansi(message) << std::endl;
-            #else
-            std::cout << "\r" CLEAR_LINE << terminal_prefix << message << std::endl;
-            #endif
-            if(path_to_log.length() > 0)
             {
-                std::fstream file(path_to_log,std::ios::out | std::ios::app);
-                file << file_prefix << parsing::strip_ansi(message) << std::endl;
+                if(terminal_prefix == last_prefix)
+                {
+                    terminal_prefix = std::string(parsing::strip_ansi(last_prefix).length(),' ');
+                    file_prefix = terminal_prefix;
+                }
+                else
+                    last_prefix = terminal_prefix;
+                #ifdef NO_ANSI_ESCAPE
+                std::cout << terminal_prefix << parsing::strip_ansi(message) << std::endl;
+                #else
+                std::cout << "\r" CLEAR_LINE << terminal_prefix << message << std::endl;
+                #endif
+                if(path_to_log.length() > 0)
+                {
+                    std::fstream file(path_to_log,std::ios::out | std::ios::app);
+                    file << file_prefix << parsing::strip_ansi(message) << std::endl;
+                }
+                if(not IsDebuggerPresent())
+                    terminal::prompt();
             }
-            if(not IsDebuggerPresent())
-                terminal::prompt();
         }
     }
     

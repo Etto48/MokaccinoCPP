@@ -20,7 +20,7 @@ namespace logging
     /**
      * @brief print something on the screen
      * 
-     * @param log_type one of "ERR" "MSG" "DBG"
+     * @param log_type one of "ERR" "PRM" "MSG" "DBG"
      * @param message the text to print
      */
     void log(std::string log_type,std::string message);

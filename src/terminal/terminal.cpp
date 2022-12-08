@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include "../ansi_escape.hpp"
 #include <iostream>
+#include <queue>
 #include <boost/asio/ip/udp.hpp>
 #include "../parsing/parsing.hpp"
 #include "../network/connection/connection.hpp"
@@ -15,6 +16,8 @@ namespace terminal
 {
     std::mutex command_function_mutex;
     std::map<std::string,CommandFunction> command_function_map;
+    std::mutex input_queue_mutex;
+    std::queue<std::pair<std::string,std::function<void(const std::string&)>>> input_queue;
     void add_command(const CommandFunction& command_info)
     {
         if(command_info.name != "exit" and command_info.name != "help" and command_info.function != nullptr)
@@ -127,7 +130,29 @@ namespace terminal
                 std::string line;
                 std::getline(std::cin,line);
                 if(line.size() > 0)
-                    last_ret = process_command(line);
+                {
+                    bool run_command = false;
+                    {
+                        std::unique_lock queue_lock(input_queue_mutex);
+                        if(not input_queue.empty())
+                        {
+                            auto callback = input_queue.front();
+                            input_queue.pop();
+                            callback.second(line);
+                            if(not input_queue.empty())
+                            {
+                                auto prompt = input_queue.front().first;
+                                logging::log("PRM",prompt);
+                            }
+                        }
+                        else
+                        {
+                            run_command = true;
+                        }
+                    }
+                    if(run_command)
+                        last_ret = process_command(line);
+                }
             }
         }
         #endif
@@ -171,5 +196,17 @@ namespace terminal
             commands::user,
             2,3});
         multithreading::add_service("terminal",terminal);
+    }
+    void input(const std::string& prompt, std::function<void(const std::string&)> callback)
+    {
+        if(callback != nullptr)
+        {
+            std::unique_lock lock(input_queue_mutex);
+            if(input_queue.empty())
+            { // we print the prompt
+                logging::log("PRM",prompt);   
+            }
+            input_queue.push({prompt,callback});
+        }
     }
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-
+#include <vector>
 namespace audio
 {
     extern unsigned long long input_dropped_frames;
@@ -10,7 +10,7 @@ namespace audio
      * @brief initialize the module
      * 
      */
-    void init();
+    void init(const std::vector<std::string>& whitelist);
     /**
      * @brief start a voice call with a connected user if no other call is happening
      * 

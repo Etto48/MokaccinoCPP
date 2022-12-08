@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <functional>
 namespace terminal
 {
     /**
@@ -77,4 +78,11 @@ namespace terminal
      * 
      */
     void init();
+    /**
+     * @brief request user input and run a callback function when it's received
+     * 
+     * @param prompt the prompt to show to the user
+     * @param callback a function that will be called after the user presses enter
+     */
+    void input(const std::string& prompt, std::function<void(const std::string&)> callback);
 };

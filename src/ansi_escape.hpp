@@ -2,6 +2,7 @@
 
 #ifndef NO_ANSI_ESCAPE
     #define ERR_TAG         "\033[31m"
+    #define PROMPT_TAG      "\033[32m"
     #define DBG_TAG         "\033[33m"
     #define MSG_TAG         "\033[34m"
     #define HIGHLIGHT       "\033[35m"
@@ -15,6 +16,7 @@
     #define CONTINUE_TAG    "\033[90m"
     #else
     #define ERR_TAG         ""
+    #define PROMPT_TAG      ""
     #define DBG_TAG         ""
     #define MSG_TAG         ""
     #define HIGHLIGHT       ""

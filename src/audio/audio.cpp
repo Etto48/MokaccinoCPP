@@ -1,10 +1,12 @@
 #include "audio.hpp"
 #include "../defines.hpp"
+#include "../ansi_escape.hpp"
 #include <mutex>
 #include <string_view>
 #include <boost/thread/sync_bounded_queue.hpp>
 #include <portaudio.h>
 #include <opus/opus.h>
+#include "../terminal/terminal.hpp"
 #include "../logging/logging.hpp"
 #include "../multithreading/multithreading.hpp"
 #include "../network/MessageQueue/MessageQueue.hpp"
@@ -13,6 +15,7 @@
 #include "../base64/base64.h"
 namespace audio
 {
+    std::vector<std::string> whitelist;
     network::MessageQueue audio_queue;
     std::mutex name_mutex;
     std::string pending_name;
@@ -257,6 +260,21 @@ namespace audio
             }
         }
     }
+    bool check_whitelist(const std::string& name)
+    {
+        for(auto& a: whitelist)
+        {
+            if(a==name)
+                return true;
+        }
+        return false;
+    }
+    void accept_connection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name)
+    {
+        network::udp::send(parsing::compose_message({"AUDIOACCEPT"}),endpoint);
+        audio_buddy = {name,endpoint};
+        comms_init();
+    }
     void audio()
     {
         while(true)
@@ -268,9 +286,23 @@ namespace audio
             {
                 if(audio_buddy.name.length() == 0)
                 {//no user connected for voice
-                    network::udp::send(parsing::compose_message({"AUDIOACCEPT"}),item.src_endpoint);
-                    audio_buddy = {item.src,item.src_endpoint};
-                    comms_init();
+                    if(check_whitelist(item.src))
+                    {
+                        accept_connection(item.src_endpoint,item.src);
+                    }else
+                    {
+                        terminal::input("User \"" HIGHLIGHT+item.src+RESET "\" requested to start a voice call, accept? (y/n)",
+                        [item](const std::string& input){
+                            if(input == "Y" or input == "y")
+                            {
+                                accept_connection(item.src_endpoint,item.src);
+                            }else
+                            {
+                                logging::log("MSG","Voice call refused from \"" HIGHLIGHT +item.src+ RESET "\"");
+                                network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
+                            }
+                        });
+                    }
                 }else
                 {//user already connected for voice
                     network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
@@ -293,12 +325,14 @@ namespace audio
             }
         }
     }
-    void init()
+    void init(const std::vector<std::string>& whitelist)
     {
+        audio::whitelist = whitelist;
         network::udp::register_queue("AUDIOSTART",audio_queue,true);
         network::udp::register_queue("AUDIOACCEPT",audio_queue,true);
         network::udp::register_queue("AUDIOSTOP",audio_queue,true);
         network::udp::register_queue("AUDIO",audio_queue,true);
+
         multithreading::add_service("audio",audio);
         multithreading::add_service("audio_sender",audio_sender);
     }

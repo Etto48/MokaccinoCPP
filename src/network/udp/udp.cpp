@@ -92,9 +92,16 @@ namespace network::udp
             }
             auto data = new char[len+1];
             boost::asio::ip::udp::endpoint sender_endpoint;
-            auto recv_len = socket.receive_from(boost::asio::buffer(data,len),sender_endpoint);
-            assert(recv_len<=len);
-            data[recv_len] = '\0';
+            try{
+                auto recv_len = socket.receive_from(boost::asio::buffer(data,len),sender_endpoint);
+                assert(recv_len<=len);
+                data[recv_len] = '\0';
+            }catch(boost::system::system_error&)
+            { // someone tried to connect to itself... ingnore it
+                delete[] data;
+                continue;
+            }
+            
             std::string recv_data = data;
             delete[] data;
             try

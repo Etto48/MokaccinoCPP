@@ -103,15 +103,35 @@ int main(int argc, char* argv[])
             logging::log("MSG","Config file written to \"" HIGHLIGHT + args["config"].as<std::string>() + RESET "\"");
         }
 
+        std::vector<std::string> connection_whitelist = {};
+        auto connection_whitelist_config = config["network"]["connection"]["whitelist"].as_array();
+        if(connection_whitelist_config != nullptr)
+        {
+            for(auto&& p : *connection_whitelist_config)
+            {
+                if(p.is_string())
+                    connection_whitelist.emplace_back(p.value_or(std::string{}));
+            }
+        }
+        std::vector<std::string> audio_whitelist = {};
+        auto audio_whitelist_config = config["network"]["audio"]["whitelist"].as_array();
+        if(audio_whitelist_config != nullptr)
+        {
+            for(auto&& p : *audio_whitelist_config)
+            {
+                if(p.is_string())
+                    audio_whitelist.emplace_back(p.value_or(std::string{}));
+            }
+        }
 
         //INITIALIZATIONS
         logging::supervisor::init(60);
         network::udp::init(config["network"]["port"].value_or(args["port"].as<uint16_t>()));
-        network::connection::init(config["network"]["username"].value_or(username));
+        network::connection::init(config["network"]["username"].value_or(username),connection_whitelist);
         network::messages::init();
         network::timecheck::init();
         terminal::init();
-        audio::init();
+        audio::init(audio_whitelist);
         
         auto autoconnect_peers_config = config["network"]["autoconnect"].as_array();
         if(autoconnect_peers_config != nullptr) 
