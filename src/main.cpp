@@ -25,7 +25,10 @@ bool DEBUG =
 
 #ifdef _TEST
 extern int test();
+extern toml::table test_config;
 #endif
+
+bool config_loaded = false;
 
 int main(int argc, char* argv[])
 {
@@ -71,9 +74,12 @@ int main(int argc, char* argv[])
         }
         //LOAD CONFIG
         toml::table config;
-        bool config_loaded = false;
         try{
+            #ifdef _TEST
+            config = test_config;
+            #else
             config = toml::parse_file(args["config"].as<std::string>());
+            #endif
             logging::config_success_log(args["config"].as<std::string>());
             config_loaded = true;
         }catch(const toml::parse_error& e)

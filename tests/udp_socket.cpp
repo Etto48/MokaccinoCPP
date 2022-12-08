@@ -4,6 +4,14 @@
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/io_service.hpp>
 #include <logging/logging.hpp>
+#include <toml.hpp>
+
+toml::table test_config = toml::table{
+    {"network", toml::table{
+        { "username", "mokaccino"}
+        }}
+};
+
 int test()
 {
     boost::asio::io_service io_service;

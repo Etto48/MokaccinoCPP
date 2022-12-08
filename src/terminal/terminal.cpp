@@ -30,6 +30,7 @@ namespace terminal
     bool exit_called = false;
     bool process_command(const std::string& line)
     {
+        if(line.length() == 0) return true;
         logging::terminal_processing_log(line);
         auto args = parsing::cmd_args(line);
         if(args.size() == 1 and args[0] == "exit")
