@@ -17,9 +17,11 @@ namespace network::connection
      * @brief initialize the module
      * 
      * @param local_username the username to initialize the username variable
-     * @param whitelist a list of names to accept automatically when they request connection
+     * @param whitelist list of users to automatically accept
+     * @param default_action what to do if a user is not in the whitelist
+     * 
      */
-    void init(std::string local_username, const std::vector<std::string>& whitelist = {});
+    void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action);
     /**
      * @brief request the connection to a specific endpoint, if you are connecting
      * to a server it must have the same username as the hostname

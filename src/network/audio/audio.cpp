@@ -1,19 +1,20 @@
 #include "audio.hpp"
-#include "../defines.hpp"
-#include "../ansi_escape.hpp"
+#include "../../defines.hpp"
+#include "../../ansi_escape.hpp"
 #include <mutex>
 #include <string_view>
 #include <boost/thread/sync_bounded_queue.hpp>
 #include <portaudio.h>
 #include <opus/opus.h>
-#include "../terminal/terminal.hpp"
-#include "../logging/logging.hpp"
-#include "../multithreading/multithreading.hpp"
-#include "../network/MessageQueue/MessageQueue.hpp"
-#include "../network/udp/udp.hpp"
-#include "../parsing/parsing.hpp"
-#include "../base64/base64.h"
-namespace audio
+#include "../../terminal/terminal.hpp"
+#include "../../logging/logging.hpp"
+#include "../../multithreading/multithreading.hpp"
+#include "../ConnectionAction/ConnectionAction.hpp"
+#include "../MessageQueue/MessageQueue.hpp"
+#include "../udp/udp.hpp"
+#include "../../parsing/parsing.hpp"
+#include "../../base64/base64.h"
+namespace network::audio
 {
     std::vector<std::string> whitelist;
     network::MessageQueue audio_queue;
@@ -24,8 +25,9 @@ namespace audio
         std::string name = "";
         boost::asio::ip::udp::endpoint endpoint;
     };
-
     AudioBuddy audio_buddy;
+
+    ConnectionAction default_action = ConnectionAction::PROMPT;
 
     PaStream* input_stream = nullptr;
     PaStream* output_stream = nullptr;
@@ -286,9 +288,13 @@ namespace audio
             {
                 if(audio_buddy.name.length() == 0)
                 {//no user connected for voice
-                    if(check_whitelist(item.src))
+                    if(check_whitelist(item.src) or default_action == ConnectionAction::ACCEPT)
                     {
                         accept_connection(item.src_endpoint,item.src);
+                    }else if(default_action == ConnectionAction::REFUSE)
+                    {
+                        logging::log("MSG","Voice call refused automatically from \"" HIGHLIGHT +item.src+ RESET "\"");
+                        network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
                     }else
                     {
                         terminal::input("User \"" HIGHLIGHT+item.src+RESET "\" requested to start a voice call, accept? (y/n)",
@@ -325,9 +331,25 @@ namespace audio
             }
         }
     }
-    void init(const std::vector<std::string>& whitelist)
+    void init(const std::vector<std::string>& whitelist, const std::string& default_action)
     {
         audio::whitelist = whitelist;
+        if(default_action == "accept")
+        {
+            audio::default_action = ConnectionAction::ACCEPT;
+        }else if(default_action == "refuse")
+        {
+            audio::default_action = ConnectionAction::REFUSE;
+        }else if(default_action == "prompt")
+        {
+            audio::default_action = ConnectionAction::PROMPT;
+        }
+        else
+        {
+            audio::default_action = ConnectionAction::PROMPT;
+            logging::log("ERR","Error in configuration file at network.connection.default_action: this must be one of \"accept\", \"refuse\" or \"prompt\", \"prompt\" was selected as default");
+        }
+
         network::udp::register_queue("AUDIOSTART",audio_queue,true);
         network::udp::register_queue("AUDIOACCEPT",audio_queue,true);
         network::udp::register_queue("AUDIOSTOP",audio_queue,true);

@@ -4,7 +4,7 @@
 #include "../logging.hpp"
 #include "../../multithreading/multithreading.hpp"
 #include "../../network/udp/udp.hpp"
-#include "../../audio/audio.hpp"
+#include "../../network/audio/audio.hpp"
 
 namespace logging::supervisor
 {
@@ -13,7 +13,7 @@ namespace logging::supervisor
     {
         while(true)
         {
-            supervisor_log(network::udp::connection_map.size(),multithreading::get_count(),audio::input_dropped_frames,audio::output_dropped_frames);
+            supervisor_log(network::udp::connection_map.size(),multithreading::get_count(),network::audio::input_dropped_frames,network::audio::output_dropped_frames);
             boost::this_thread::sleep_for(boost::chrono::seconds(sleep_time));
         }
     }

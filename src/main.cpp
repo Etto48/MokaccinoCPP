@@ -11,9 +11,9 @@
 #include "network/timecheck/timecheck.hpp"
 #include "network/connection/connection.hpp"
 #include "network/messages/messages.hpp"
+#include "network/audio/audio.hpp"
 #include "network/udp/udp.hpp"
 #include "parsing/parsing.hpp"
-#include "audio/audio.hpp"
 #include "toml.hpp"
 
 bool DEBUG = 
@@ -127,11 +127,14 @@ int main(int argc, char* argv[])
         //INITIALIZATIONS
         logging::supervisor::init(60);
         network::udp::init(config["network"]["port"].value_or(args["port"].as<uint16_t>()));
-        network::connection::init(config["network"]["username"].value_or(username),connection_whitelist);
+        network::connection::init(
+            config["network"]["username"].value_or(username),
+            connection_whitelist,
+            config["network"]["connection"]["default_action"].value_or(std::string("prompt")));
         network::messages::init();
         network::timecheck::init();
         terminal::init();
-        audio::init(audio_whitelist);
+        network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")));
         
         auto autoconnect_peers_config = config["network"]["autoconnect"].as_array();
         if(autoconnect_peers_config != nullptr) 

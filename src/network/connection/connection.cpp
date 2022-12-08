@@ -7,11 +7,13 @@
 #include "../../logging/logging.hpp"
 #include "../../terminal/terminal.hpp"
 #include "../udp/udp.hpp"
+#include "../ConnectionAction/ConnectionAction.hpp"
 #include "../MessageQueue/MessageQueue.hpp"
 namespace network::connection
 {
     MessageQueue connection_queue;
     std::string username;
+    ConnectionAction default_action = ConnectionAction::PROMPT;
     std::vector<std::string> whitelist;
     struct StatusEntry
     {
@@ -46,11 +48,14 @@ namespace network::connection
                 std::unique_lock lock(status_map_mutex);
                 if(args[0] == "CONNECT" and args.size() == 2)
                 {
-                    if(check_whitelist(args[1]))
+                    if(check_whitelist(args[1]) or default_action == ConnectionAction::ACCEPT)
                     {
                         accept_connection(item.src_endpoint,args[1]);
-                    }
-                    else
+                    }else if(default_action == ConnectionAction::REFUSE)
+                    {
+                        udp::send(parsing::compose_message({"DISCONNECT","connection refused"}),item.src_endpoint);
+                        logging::log("MSG","Connection refused automatically from \"" HIGHLIGHT +args[1]+ RESET "\"");
+                    }else
                         terminal::input(
                             "User \"" HIGHLIGHT + args[1] + RESET 
                             "\" (" HIGHLIGHT +item.src_endpoint.address().to_string()+ RESET 
@@ -150,10 +155,26 @@ namespace network::connection
             }
         }
     }
-    void init(std::string local_username, const std::vector<std::string>& whitelist)
+    void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action)
     {
         username = local_username;
         network::connection::whitelist = whitelist;
+        if(default_action == "accept")
+        {
+            network::connection::default_action = ConnectionAction::ACCEPT;
+        }else if(default_action == "refuse")
+        {
+            network::connection::default_action = ConnectionAction::REFUSE;
+        }else if(default_action == "prompt")
+        {
+            network::connection::default_action = ConnectionAction::PROMPT;
+        }
+        else
+        {
+            network::connection::default_action = ConnectionAction::PROMPT;
+            logging::log("ERR","Error in configuration file at network.connection.default_action: this must be one of \"accept\", \"refuse\" or \"prompt\", \"prompt\" was selected as default");
+        }
+        
         udp::register_queue("CONNECT",connection_queue,false);
         udp::register_queue("HANDSHAKE",connection_queue,false);
         udp::register_queue("CONNECTED",connection_queue,false);

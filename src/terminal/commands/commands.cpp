@@ -8,7 +8,7 @@
 #include "../../network/udp/DataMap/DataMap.hpp"
 #include "../../network/messages/messages.hpp"
 #include "../../network/connection/connection.hpp"
-#include "../../audio/audio.hpp"
+#include "../../network/audio/audio.hpp"
 
 namespace terminal::commands
 {
@@ -88,7 +88,7 @@ namespace terminal::commands
             if(args.size() == 3)
             {
                 //TODO: check if all went right, user found and not already in a call
-                audio::start_call(args[2]);
+                network::audio::start_call(args[2]);
                 return true;
             }else
             {
@@ -101,7 +101,7 @@ namespace terminal::commands
             if(args.size() == 2)
             {
                 //TODO: check if all went right, must be already in a call to do this
-                audio::stop_call();
+                network::audio::stop_call();
                 return true;
             }else
             {

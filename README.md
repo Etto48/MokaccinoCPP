@@ -44,6 +44,20 @@ port = 23232
 # you will connect to this list of servers automatically
 autoconnect = ["server1.com","server2.net:24242"]
 
+[network.audio]
+# if someone in this list requests a voice call, the request is automatically accepted
+whitelist = ["peer1"]
+
+# this can be set to "accept" (auto accept every request), "refuse" (auto refuse every not whitelisted connection), "prompt" same as not defined
+default_action = "prompt"
+
+[network.connection]
+# if someone in this list requests connection, the request is automatically accepted
+whitelist = ["peer1","peer2"]
+
+# this can be set to "accept" (auto accept every request), "refuse" (auto refuse every not whitelisted connection), "prompt" same as not defined
+default_action = "prompt"
+
 [terminal]
 # you will run these commands after startup
 startup_commands = ["msg server1.com hello everybody","voice start server2.net"]
