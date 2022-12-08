@@ -78,6 +78,7 @@ jobs:
         cd boost_1_80_0
         ./bootstrap.sh
         ./b2
+        cd ../
         mv boost_1_80_0 /usr/local/Cellar
 
     - name: Cache CMake cache
