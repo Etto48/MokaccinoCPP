@@ -10,4 +10,5 @@ namespace terminal::commands
     bool voice(const std::string& line, const std::vector<std::string>& args);
     bool sleep(const std::string& line, const std::vector<std::string>& args);
     bool user(const std::string& line, const std::vector<std::string>& args);
+    bool scroll(const std::string& line, const std::vector<std::string>& args);
 };

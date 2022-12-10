@@ -9,6 +9,7 @@
 #include "../../network/messages/messages.hpp"
 #include "../../network/connection/connection.hpp"
 #include "../../network/audio/audio.hpp"
+#include "../../ui/ui.hpp"
 
 namespace terminal::commands
 {
@@ -179,6 +180,54 @@ namespace terminal::commands
         }else
         {
             logging::log("ERR","The second argument must be list or info, use \"help user\" for more info");
+            return false;
+        }
+    }
+    bool scroll(const std::string& line, const std::vector<std::string>& args)
+    {
+        if(args[1] == "up")
+        {
+            if(args.size() == 3)
+            { // n lines
+                try
+                {
+                    int l_count = std::stoi(args[2]);
+                    if(l_count < 0)
+                        throw std::exception{};
+                    ui::scroll(l_count);
+                }catch(std::exception&)
+                {
+                    logging::log("ERR","The argument must be a positive number");
+                }
+            }
+            else
+            { // one line
+                ui::scroll(1);
+            }
+        }
+        else if(args[1] == "down")
+        { 
+            if(args.size() == 3)
+            { // n lines
+                try
+                {
+                    int l_count = std::stoi(args[2]);
+                    if(l_count < 0)
+                        throw std::exception{};
+                    ui::scroll(-l_count);
+                }catch(std::exception&)
+                {
+                    logging::log("ERR","The argument must be a positive number");
+                }
+            }
+            else
+            { // one line
+                ui::scroll(-1);
+            }
+        }
+        else
+        {
+            logging::log("ERR","The second argument must be up or down, use \"help user\" for more info");
             return false;
         }
     }

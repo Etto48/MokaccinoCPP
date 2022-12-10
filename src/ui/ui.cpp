@@ -91,17 +91,8 @@ namespace ui
         return false;
     }
     #endif
-
-    void prompt(std::string prompt_text)
-    {
-        save_cursor();
-        move_cursor(terminal_size.first-1,1);
-        auto spaces = terminal_size.second - parsing::strip_ansi(prompt_text).length() - 2;
-        std::cout << CLEAR_LINE << PROMPT_COLOR << ' ' << prompt_text << std::string(spaces,' ') << RESET;
-        restore_cursor();
-    }
-
     int lines_offset = 0;
+
     void _reprint_lines()
     {
         clear_lines(1,terminal_size.first-PRINT_EXCEPT_N_LINES);
@@ -121,6 +112,38 @@ namespace ui
         }
         restore_cursor();
     }
+
+    void _scroll(int line_count)
+    {
+        lines_offset += line_count;
+        if(lines_offset < 0)
+            lines_offset = 0;
+        else if(lines_offset > lines.size())
+            lines_offset = (int)lines.size();
+        
+        if(line_count != 0)
+        {
+            _reprint_lines();
+        }
+    }
+
+    void scroll(int line_count)
+    {
+        std::unique_lock lines_lock(lines_mutex);
+        _scroll(line_count);
+    }
+
+    void prompt(std::string prompt_text)
+    {
+        save_cursor();
+        move_cursor(terminal_size.first-1,1);
+        auto spaces = terminal_size.second - parsing::strip_ansi(prompt_text).length() - 2;
+        std::cout << CLEAR_LINE << PROMPT_COLOR << ' ' << prompt_text << std::string(spaces,' ') << RESET;
+        restore_cursor();
+    }
+
+    
+    
     void reprint_lines()
     {
         std::unique_lock lines_lock(lines_mutex);
@@ -166,16 +189,7 @@ namespace ui
             
             {
                 std::unique_lock lines_lock(lines_mutex);
-                lines_offset += move;
-                if(lines_offset < 0)
-                    lines_offset = 0;
-                else if(lines_offset > lines.size())
-                    lines_offset = (int)lines.size();
-                
-                if(move != 0)
-                {
-                    _reprint_lines();
-                }
+                _scroll(move);
             }
             boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
             #else

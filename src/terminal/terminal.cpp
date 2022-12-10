@@ -197,6 +197,14 @@ namespace terminal
             "Get a list of connected users or the address about a specific user",
             commands::user,
             2,3});
+        #ifndef NO_TERMINAL_UI
+        add_command(CommandFunction{
+            "scroll",
+            "(up|down) [lines]",
+            "Scroll the terminal up or down one ore more lines",
+            commands::scroll,
+            2,3});
+        #endif
         multithreading::add_service("terminal",terminal);
     }
     void input(const std::string& prompt, std::function<void(const std::string&)> callback)

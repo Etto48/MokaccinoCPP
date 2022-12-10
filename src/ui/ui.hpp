@@ -13,6 +13,8 @@ namespace ui
     bool get_page_up();
     bool get_page_down();
 
+    void scroll(int line_count);
+
     void prompt(std::string prompt_text);
     void reprint_lines();
     void add_line(std::string line);
