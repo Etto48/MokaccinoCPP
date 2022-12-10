@@ -35,7 +35,7 @@ namespace network::connection
     {
         status_map[endpoint] = {"CONNECTED",name};
         udp::send(parsing::compose_message({"HANDSHAKE",username}),endpoint);
-        logging::log("DBG","Handled CONNECT from "+endpoint.address().to_string()+":"+std::to_string(endpoint.port()));
+        logging::log("MSG","Connection accepted from " HIGHLIGHT + name + RESET " at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
     }
     void connection()
     {
@@ -76,13 +76,13 @@ namespace network::connection
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     udp::send(parsing::compose_message({"CONNECTED",username}),item.src_endpoint);
-                    logging::log("DBG","Handled HANDSHAKE from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
+                    logging::log("MSG","Connection accepted from " HIGHLIGHT + args[1] + RESET " at " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
                 }
                 else if(args[0] == "CONNECTED" and args.size() == 2 and status_map[item.src_endpoint].expected_message == "CONNECTED" and status_map[item.src_endpoint].name == args[1])
                 {
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
-                    logging::log("DBG","Handled CONNECTED from "+item.src_endpoint.address().to_string()+":"+std::to_string(item.src_endpoint.port()));
+                    logging::log("MSG","Peer " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET " is now connected as user \"" HIGHLIGHT+args[1]+RESET"\"");
                 }
                 else if(args[0] == "DISCONNECT" and args.size() >= 1 and args.size() <= 2)
                 {
@@ -122,6 +122,7 @@ namespace network::connection
                 else if(args[0] == "FAIL" and args.size() == 2)
                 {
                     //TODO: handle not found
+                    logging::log("ERR","User \"" HIGHLIGHT + args[1] + RESET "\" not found from " HIGHLIGHT + item.src + RESET);
                 }
                 else if(DEBUG and args[0] == "TEST")
                 {
@@ -150,7 +151,7 @@ namespace network::connection
                     }
                 }
                 else {
-                    logging::log("DBG","Dropped "+ args[0] +" from "+ item.src_endpoint.address().to_string() +":"+ std::to_string(item.src_endpoint.port()));
+                    logging::log("DBG","Dropped " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
                 }
             }
         }

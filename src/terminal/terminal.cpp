@@ -3,6 +3,7 @@
 #include "../ansi_escape.hpp"
 #include <iostream>
 #include <queue>
+#include <semaphore>
 #include <boost/asio/ip/udp.hpp>
 #include "../parsing/parsing.hpp"
 #include "../network/connection/connection.hpp"
@@ -47,14 +48,14 @@ namespace terminal
                 for(auto& [command_name,info]: command_function_map)
                 {
                     logging::log("MSG","- " HIGHLIGHT + info.name + RESET);
-                    logging::log("MSG","\t" + info.help_text);
+                    logging::log("MSG","    " + info.help_text);
                     logging::log("MSG","");
                 }
                 logging::log("MSG","- " HIGHLIGHT "help" RESET);
-                logging::log("MSG","\tShow a list of commands or help about a specific command");
+                logging::log("MSG","    Show a list of commands or help about a specific command");
                 logging::log("MSG","");
                 logging::log("MSG","- " HIGHLIGHT "exit" RESET);
-                logging::log("MSG","\tClose the program");
+                logging::log("MSG","    Close the program");
                 logging::log("MSG","");
                 logging::log("MSG","Use \"help <command>\" to show more info about a specific command");
                 return true;
@@ -66,22 +67,22 @@ namespace terminal
                 {
                     auto& info = command_info_iter->second;
                     logging::log("MSG","- " HIGHLIGHT + info.name + RESET);
-                    logging::log("MSG","\tUsage: "+info.name+" "+info.usage);
-                    logging::log("MSG","\t" + info.help_text);
+                    logging::log("MSG","    Usage: "+info.name+" "+info.usage);
+                    logging::log("MSG","    " + info.help_text);
                     return true;
                 }
                 else if(args[1] == "help")
                 {
                     logging::log("MSG","- " HIGHLIGHT "help" RESET);
-                    logging::log("MSG","\tUsage: help [command]");
-                    logging::log("MSG","\tShow a list of commands or help about a specific command");
+                    logging::log("MSG","    Usage: help [command]");
+                    logging::log("MSG","    Show a list of commands or help about a specific command");
                     return true;
                 }
                 else if(args[1] == "exit")
                 {
                     logging::log("MSG","- " HIGHLIGHT "exit" RESET);
-                    logging::log("MSG","\tUsage: exit");
-                    logging::log("MSG","\tClose the program");
+                    logging::log("MSG","    Usage: exit");
+                    logging::log("MSG","    Close the program");
                     return true;
                 }
                 else
@@ -105,7 +106,7 @@ namespace terminal
                 else
                 {//syntax error
                     logging::log("ERR","Syntax error");
-                    logging::log("ERR","\tUsage: "+cmd_info.name+" "+cmd_info.usage);
+                    logging::log("ERR","    Usage: "+cmd_info.name+" "+cmd_info.usage);
                     return false;
                 }
             }
@@ -209,5 +210,18 @@ namespace terminal
             }
             input_queue.push({prompt,callback});
         }
+    }
+
+    std::string blocking_input(const std::string& prompt)
+    {
+        std::counting_semaphore sync_sem{0};
+        std::string ret;
+        input(prompt,
+            [&sync_sem,&ret](const std::string& input){
+                ret = input;
+                sync_sem.release();
+            });
+        sync_sem.acquire();
+        return ret;
     }
 }

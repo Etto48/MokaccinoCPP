@@ -14,6 +14,7 @@
 #include "network/audio/audio.hpp"
 #include "network/udp/udp.hpp"
 #include "parsing/parsing.hpp"
+#include "ui/ui.hpp"
 #include "toml.hpp"
 
 bool DEBUG = 
@@ -67,7 +68,9 @@ int main(int argc, char* argv[])
     }
     else
     {
+        ui::init();
         logging::init(args["log"].as<std::string>());
+        terminal::init();
         if(args["debug"].as<bool>())
         {
             DEBUG = not DEBUG;
@@ -97,9 +100,11 @@ int main(int argc, char* argv[])
         
         if(not config_loaded and username.length() == 0)
         {
-            std::cout << "\r" CLEAR_LINE "Username: ";
+            /*std::cout << "\r" CLEAR_LINE "Username: ";
             std::cout.flush();
-            std::cin >> username;
+            std::cin >> username;*/
+            username = terminal::blocking_input("Username");
+
             std::filesystem::create_directories(MOKACCINO_ROOT);
             std::fstream new_config{CONFIG_PATH,std::ios::out | std::ios::trunc};
             toml::table default_config{
@@ -139,9 +144,8 @@ int main(int argc, char* argv[])
             config["network"]["connection"]["default_action"].value_or(std::string("prompt")));
         network::messages::init();
         network::timecheck::init();
-        terminal::init();
         network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")));
-        
+
         auto autoconnect_peers_config = config["network"]["autoconnect"].as_array();
         if(autoconnect_peers_config != nullptr) 
         {// if autoconnect was defined in the config

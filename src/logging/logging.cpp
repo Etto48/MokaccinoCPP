@@ -8,6 +8,7 @@
 #include "../terminal/prompt.hpp"
 #include "../multithreading/multithreading.hpp"
 #include "../parsing/parsing.hpp"
+#include "../ui/ui.hpp"
 
 namespace logging
 {
@@ -66,7 +67,11 @@ namespace logging
                 #ifdef NO_ANSI_ESCAPE
                 std::cout << terminal_prefix << parsing::strip_ansi(message) << ": ";
                 #else
+                #ifdef NO_TERMINAL_UI
                 std::cout << "\r" CLEAR_LINE << terminal_prefix << message << ": ";
+                #else
+                ui::prompt(message);
+                #endif
                 #endif
                 std::cout.flush();
                 
@@ -83,7 +88,12 @@ namespace logging
                 #ifdef NO_ANSI_ESCAPE
                 std::cout << terminal_prefix << parsing::strip_ansi(message) << std::endl;
                 #else
+                #ifdef NO_TERMINAL_UI
                 std::cout << "\r" CLEAR_LINE << terminal_prefix << message << std::endl;
+                #else
+                ui::add_line(terminal_prefix + message);
+                ui::reprint_lines();
+                #endif
                 #endif
                 if(path_to_log.length() > 0)
                 {
@@ -177,8 +187,8 @@ namespace logging
     void config_error_log(const toml::parse_error& e)
     {
         log("ERR","Config file parsing error:");
-        log("ERR",std::string("\t") + e.what());
-        log("ERR",std::string("\t") + (*e.source().path) + " (" + std::to_string(e.source().begin.line) + ", " + std::to_string(e.source().begin.column) + ")");
+        log("ERR",std::string("    ") + e.what());
+        log("ERR",std::string("    ") + (*e.source().path) + " (" + std::to_string(e.source().begin.line) + ", " + std::to_string(e.source().begin.column) + ")");
     }
     void audio_call_error_log(const std::string& why)
     {

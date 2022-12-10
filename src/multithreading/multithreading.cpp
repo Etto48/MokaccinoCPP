@@ -1,5 +1,6 @@
 #include "multithreading.hpp"
 #include "../defines.hpp"
+#include "../ansi_escape.hpp"
 #include <map>
 #include <mutex>
 #include <iostream>
@@ -33,10 +34,10 @@ namespace multithreading
             {
                 if(try_n >= MAX_TRY_FOR_JOIN)
                 {
-                    logging::log("DBG","Failed to join thread " + th.first);
+                    logging::log("DBG","Failed to join thread " HIGHLIGHT + th.first + RESET);
                     break;
                 }
-                logging::log("DBG","Thread " + th.first + " is not stopping, retrying ("+std::to_string(try_n+1)+"/"+std::to_string(MAX_TRY_FOR_JOIN)+")...");
+                logging::log("DBG","Thread " HIGHLIGHT + th.first + RESET " is not stopping, retrying ("+std::to_string(try_n+1)+"/"+std::to_string(MAX_TRY_FOR_JOIN)+")...");
                 th.second.interrupt();
                 try_n ++;
             }

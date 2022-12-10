@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13.0)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(Mokaccino)
 file(GLOB_RECURSE sources "src/*.cpp")
@@ -30,6 +30,11 @@ option(DISABLE_ANSI_ESCAPE "If enabled the output text won't use ANSI escape seq
 if(DISABLE_ANSI_ESCAPE)
     message(STATUS "Disabling output colors")
     add_compile_definitions(NO_ANSI_ESCAPE)
+endif()
+option(DISABLE_TERMINAL_UI "If enabled the output text won't use ANSI to behave like a terminal user interface" OFF)
+if(DISABLE_TERMINAL_UI OR DISABLE_ANSI_ESCAPE)
+    message(STATUS "Disabling terminal UI")
+    add_compile_definitions(NO_TERMINAL_UI)
 endif()
 
 #link and include

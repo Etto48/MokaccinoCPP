@@ -21,7 +21,7 @@ namespace terminal::commands
                 auto endpoint_hostname = parsing::endpoint_from_hostname(args[2]);
                 auto endpoint = endpoint_hostname.first;
                 auto host = endpoint_hostname.second;
-                logging::log("DBG","Target found at "+endpoint.address().to_string()+":"+std::to_string(endpoint.port()));
+                logging::log("DBG","Target found at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
                 network::connection::connect(endpoint, host);
             }catch(network::udp::LookupError)
             {
@@ -154,14 +154,14 @@ namespace terminal::commands
                 try{
                     auto user_info = network::udp::connection_map[args[2]];
                     logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
-                    logging::log("MSG","\tAddress: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
+                    logging::log("MSG","    Address: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
                     auto ms = user_info.avg_latency.total_milliseconds() / 2;
                     if(ms != 0)
-                        logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(ms) + RESET "ms");
+                        logging::log("MSG","    Ping: " HIGHLIGHT + std::to_string(ms) + RESET "ms");
                     else
                     {
                         auto us = user_info.avg_latency.total_microseconds() / 2;
-                        logging::log("MSG","\tPing: " HIGHLIGHT + std::to_string(us) + RESET "us");
+                        logging::log("MSG","    Ping: " HIGHLIGHT + std::to_string(us) + RESET "us");
                     }
                     return true;
                 }catch(network::DataMap::NotFound&)

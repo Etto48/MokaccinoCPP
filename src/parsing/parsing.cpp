@@ -190,4 +190,29 @@ namespace parsing
         else return std::string(var);        
         #endif
     }
+    size_t ansi_len(const std::string& str, size_t len)
+    {
+        size_t current = 0;
+        size_t actual = 0;
+        bool stripping = false;
+        for(const auto& c: str)
+        {
+            if(current == len)
+                break;
+            if(c=='\033')
+            {
+                stripping = true;
+            }
+            else if(stripping and std::isalpha(c))
+            {
+                stripping = false;
+            }
+            else if(not stripping)
+            {
+                current += 1;
+            }
+            actual += 1;
+        }
+        return actual;
+    }
 }

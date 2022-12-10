@@ -85,4 +85,11 @@ namespace terminal
      * @param callback a function that will be called after the user presses enter
      */
     void input(const std::string& prompt, std::function<void(const std::string&)> callback);
+    /**
+     * @brief wait for input blocking the current thread
+     * 
+     * @param prompt the prompt to show to the user
+     * @return the user input
+     */
+    std::string blocking_input(const std::string& prompt);
 };

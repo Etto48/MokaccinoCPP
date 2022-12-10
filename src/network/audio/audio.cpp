@@ -275,6 +275,7 @@ namespace network::audio
     {
         network::udp::send(parsing::compose_message({"AUDIOACCEPT"}),endpoint);
         audio_buddy = {name,endpoint};
+        logging::log("MSG","Voice call accepted from " HIGHLIGHT + name + RESET);
         comms_init();
     }
     void audio()
@@ -313,17 +314,17 @@ namespace network::audio
                 {//user already connected for voice
                     network::udp::send(parsing::compose_message({"AUDIOSTOP"}),item.src_endpoint);
                 }
-                logging::log("DBG","Handled " + args[0] + " from "+item.src);
+                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }else if(args.size() == 1 and args[0] == "AUDIOACCEPT" and pending_name == item.src and audio_buddy.name.length()==0)
             {
                 audio_buddy = {item.src,item.src_endpoint};
                 pending_name = "";
                 comms_init();
-                logging::log("DBG","Handled " + args[0] + " from "+item.src);
+                logging::log("MSG","Voice call accepted from " HIGHLIGHT + item.src + RESET);
             }else if(args.size() == 1 and args[0] == "AUDIOSTOP" and (audio_buddy.name == item.src or pending_name == item.src))
             {
                 comms_stop();
-                logging::log("DBG","Handled " + args[0] + " from "+item.src);
+                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }else if(args.size() == 2 and args[0] == "AUDIO" and audio_buddy.name == item.src)
             {
                 if(not output_buffer.try_push(args[1]))

@@ -78,4 +78,13 @@ namespace parsing
      * @return the value of the variable, "" if not found
      */
     std::string getenv(const std::string& env_var);
+    /**
+     * @brief calculate the corresponding position in a string containing 
+     * ansi escape sequences given the position in the same string withoout escape sequences
+     * 
+     * @param str ansi escaped string
+     * @param len position in the non ansi equivalent (you can retrieve this with strip_ansi)
+     * @return the position in the ansi escaped string
+     */
+    size_t ansi_len(const std::string& str, size_t len);
 }
