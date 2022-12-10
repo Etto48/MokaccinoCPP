@@ -3,6 +3,7 @@
 #include "../ansi_escape.hpp"
 #include "../parsing/parsing.hpp"
 #include "../multithreading/multithreading.hpp"
+#include "../logging/logging.hpp"
 #include <boost/thread.hpp>
 #ifdef _WIN32
 #include <windows.h>
@@ -158,6 +159,7 @@ namespace ui
         #ifndef NO_TERMINAL_UI
         while(true)
         {
+            #ifdef _WIN32
             auto page_down = get_page_down();
             auto page_up = get_page_up();
             int move = page_down and not page_up? -1 : page_up and not page_down? 1 : 0;
@@ -176,6 +178,9 @@ namespace ui
                 }
             }
             boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+            #else
+            return;
+            #endif
         }
         #endif
     }
