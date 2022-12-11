@@ -27,6 +27,9 @@ jobs:
         path: C:/Program Files/PDCurses
         key: ${{ runner.os }}-PDCurses
       
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+      
     - name: Download, compile and install PDCurses
       if: steps.pdcurses-cache.outputs.cache-hit != 'true'
       run: |
