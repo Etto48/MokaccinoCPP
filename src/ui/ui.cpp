@@ -173,12 +173,15 @@ namespace ui
         wrefresh(scroller_window);
     }
     void _scroll_text(int line_count);
+    std::string getline_buffer;
+    int getline_cursor = 0;
     std::string getline()
     {
+        getline_buffer = "";
         std::string ret;
         int c;
         bool done = false;
-        int cursor = 0;
+        getline_cursor = 0;
         while(not done){
             c = getch();
 
@@ -186,30 +189,35 @@ namespace ui
             if(c == -1)
                 continue;
             if(c=='\n')
+            {
+                ret = getline_buffer;
+                getline_buffer = "";
+                getline_cursor = 0;
                 break;
+            }
             switch (c)
             {
             case KEY_BACKSPACE:
             case '\b':
-                if(cursor > 0)
+                if(getline_cursor > 0)
                 {
-                    ret.erase(cursor-1,1);
-                    cursor--;
+                    getline_buffer.erase(getline_cursor-1,1);
+                    getline_cursor--;
                 }
                 break;
             case KEY_LEFT:
-                if(cursor > 0)
-                    cursor--;
+                if(getline_cursor > 0)
+                    getline_cursor--;
                 break;
             case KEY_RIGHT:
-                if(cursor < ret.length())
-                    cursor++;
+                if(getline_cursor < getline_buffer.length())
+                    getline_cursor++;
                 break;
             case KEY_HOME:
-                cursor = 0;
+                getline_cursor = 0;
                 break;
             case KEY_END:
-                cursor = (int)ret.length();
+                getline_cursor = (int)getline_buffer.length();
                 break;
             case KEY_UP:
                 _scroll_text(1);
@@ -221,12 +229,12 @@ namespace ui
                 lines_offset = 0;
                 break;
             default:
-                ret.insert(ret.begin()+cursor,c);
-                cursor ++;
+                getline_buffer.insert(getline_buffer.begin()+getline_cursor,c);
+                getline_cursor ++;
                 break;
             }
-            mvwaddstr(input_window,1,0,(ret + std::string(COLS - ret.length() + 1,' ')).c_str());
-            move(LINES-1,cursor);
+            mvwaddstr(input_window,1,0,(getline_buffer + std::string(COLS - getline_buffer.length() + 1,' ')).c_str());
+            move(LINES-1,getline_cursor);
             wrefresh(input_window);
         }
         lines_offset = 0;
@@ -242,6 +250,8 @@ namespace ui
         mvwdeleteln(input_window,0,0);
         mvwaddstr(input_window,0,0,(' '+str+std::string(COLS-str.length()-1,' ')).c_str());
         wattroff(input_window,COLOR_PAIR(1));
+        mvwaddstr(input_window,1,0,getline_buffer.c_str());
+        wmove(input_window,1,getline_cursor);
         wrefresh(input_window);
     }
     void print(const std::string& str)
