@@ -4,7 +4,7 @@
 #include <mutex>
 #include <iostream>
 #include <list>
-#ifdef USE_CURSES
+#ifndef NO_CURSES
 #ifdef MOUSE_MOVED
 #undef MOUSE_MOVED
 #endif
@@ -16,7 +16,7 @@ namespace ui
     std::mutex interface_mutex;
     int lines_offset = 0;
     void scroll_text(int line_count);
-    #ifndef USE_CURSES
+    #ifdef NO_CURSES
     #define PRINT_EXCEPT_N_LINES 1
     std::list<std::string> lines; 
     std::pair<unsigned int, unsigned int> terminal_size;
