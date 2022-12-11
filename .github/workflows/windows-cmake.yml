@@ -19,6 +19,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - uses: seanmiddleditch/gha-setup-vsdevenv@master
 
     - name: Cache PDCurses
       id: pdcurses-cache
@@ -26,10 +27,7 @@ jobs:
       with:
         path: C:/Program Files/PDCurses
         key: ${{ runner.os }}-PDCurses
-      
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.1
-      
+    
     - name: Download, compile and install PDCurses
       if: steps.pdcurses-cache.outputs.cache-hit != 'true'
       run: |
