@@ -20,6 +20,27 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Cache PDCurses
+      id: pdcurses-cache
+      uses: actions/cache@v3
+      with:
+        path: C:/Program Files/PDCurses
+        key: ${{ runner.os }}-PDCurses
+      
+    - name: Download, compile and install PDCurses
+      if: steps.pdcurses-cache.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/wmcbrine/PDCurses.git
+        cd PDCurses
+        cd wincon
+        nmake -f Makefile.vc
+        mkdir "C:/Program Files/PDCurses"
+        mkdir "C:/Program Files/PDCurses/lib"
+        mkdir "C:/Program Files/PDCurses/include"
+        cp pdcurses.lib "C:/Program Files/PDCurses/lib"
+        cd ../
+        cp *.h "C:/Program Files/PDCurses/include"
+
     - name: Cache PortAudio
       id: portaudio-cache
       uses: actions/cache@v3
