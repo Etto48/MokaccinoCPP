@@ -66,15 +66,15 @@ namespace logging
             {
                 #ifdef NO_ANSI_ESCAPE
                 std::cout << terminal_prefix << parsing::strip_ansi(message) << ": ";
+                std::cout.flush();
                 #else
                 #ifdef NO_TERMINAL_UI
                 std::cout << "\r" CLEAR_LINE << terminal_prefix << message << ": ";
+                std::cout.flush();
                 #else
                 ui::prompt(message);
                 #endif
                 #endif
-                std::cout.flush();
-                
             }
             else
             {
@@ -91,8 +91,7 @@ namespace logging
                 #ifdef NO_TERMINAL_UI
                 std::cout << "\r" CLEAR_LINE << terminal_prefix << message << std::endl;
                 #else
-                ui::add_line(terminal_prefix + message);
-                ui::reprint_lines();
+                ui::print(terminal_prefix + message);
                 #endif
                 #endif
                 if(path_to_log.length() > 0)

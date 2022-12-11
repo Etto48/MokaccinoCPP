@@ -87,4 +87,12 @@ namespace parsing
      * @return the position in the ansi escaped string
      */
     size_t ansi_len(const std::string& str, size_t len);
+    /**
+     * @brief remove the ansi escape codes from a string and set the flags for every char
+     * to print it correctly with curses
+     * 
+     * @param str the input string with ansi escape codes
+     * @return a vector of pairs (char, color info)
+     */
+    std::vector<std::pair<char,int>> curses_split_color(const std::string& str);
 }

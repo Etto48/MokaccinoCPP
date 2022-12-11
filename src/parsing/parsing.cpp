@@ -1,6 +1,7 @@
 #include "parsing.hpp"
 #include "../defines.hpp"
 #include "../network/udp/udp.hpp"
+#include "curses_ansi_lookup.hpp"
 #ifndef MSG_SPLITTING_CHAR
     #define MSG_SPLITTING_CHAR ' '
 #endif
@@ -214,5 +215,40 @@ namespace parsing
             actual += 1;
         }
         return actual;
+    }
+    std::vector<std::pair<char,int>> curses_split_color(const std::string& str)
+    {
+        std::vector<std::pair<char,int>> ret;
+        bool stripping = false;
+        int current_tag = 0;
+        std::string last_ansi_code = "";
+        for(const auto& c: str)
+        {
+            if(c=='\033')
+            {
+                stripping = true;
+                last_ansi_code += c;
+            }
+            else if(stripping and std::isalpha(c))
+            {
+                stripping = false;
+                last_ansi_code += c;
+                auto curses_code = curses_lookup.find(last_ansi_code);
+                if(curses_code != curses_lookup.end())
+                {
+                    current_tag = curses_code->second;
+                }
+                last_ansi_code = "";
+            }
+            else if(not stripping)
+            {
+                ret.emplace_back(std::pair{c,current_tag});
+            }
+            else
+            {
+                last_ansi_code += c;
+            }
+        }
+        return ret;
     }
 }

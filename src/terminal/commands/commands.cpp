@@ -194,15 +194,20 @@ namespace terminal::commands
                     int l_count = std::stoi(args[2]);
                     if(l_count < 0)
                         throw std::exception{};
-                    ui::scroll(l_count);
+                    #ifndef USE_CURSES    
+                    ui::scroll_text(l_count);
+                    #endif
                 }catch(std::exception&)
                 {
                     logging::log("ERR","The argument must be a positive number");
+                    return false;
                 }
             }
             else
             { // one line
-                ui::scroll(1);
+                #ifndef USE_CURSES
+                ui::scroll_text(1);
+                #endif
             }
         }
         else if(args[1] == "down")
@@ -214,15 +219,20 @@ namespace terminal::commands
                     int l_count = std::stoi(args[2]);
                     if(l_count < 0)
                         throw std::exception{};
-                    ui::scroll(-l_count);
+                    #ifndef USE_CURSES
+                    ui::scroll_text(-l_count);
+                    #endif
                 }catch(std::exception&)
                 {
                     logging::log("ERR","The argument must be a positive number");
+                    return false;
                 }
             }
             else
             { // one line
-                ui::scroll(-1);
+                #ifndef USE_CURSES
+                ui::scroll_text(-1);
+                #endif
             }
         }
         else
@@ -230,5 +240,6 @@ namespace terminal::commands
             logging::log("ERR","The second argument must be up or down, use \"help user\" for more info");
             return false;
         }
+        return true;
     }
 };

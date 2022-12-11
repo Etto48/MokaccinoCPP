@@ -10,7 +10,7 @@ namespace terminal
     {
         #ifndef _TEST
         #ifndef NO_TERMINAL_UI
-        ui::prompt("Command: ");
+        ui::prompt("Command:");
         #else
         #ifndef NO_ANSI_ESCAPE
         std::cout << "\r" CLEAR_LINE;

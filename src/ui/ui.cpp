@@ -1,26 +1,31 @@
 #include "ui.hpp"
 #include "../defines.hpp"
 #include "../ansi_escape.hpp"
-#include "../parsing/parsing.hpp"
-#include "../multithreading/multithreading.hpp"
-#include "../logging/logging.hpp"
-#include <boost/thread.hpp>
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/ioctl.h>
-#endif
+#include <mutex>
 #include <iostream>
 #include <list>
-#include <mutex>
-#include <semaphore>
+#ifdef USE_CURSES
+#ifdef MOUSE_MOVED
+#undef MOUSE_MOVED
+#endif
+#include <curses.h>
+#endif
+#include "../parsing/parsing.hpp"
 namespace ui
 {
-    std::pair<unsigned int, unsigned int> terminal_size;
-    std::mutex lines_mutex;
+    std::mutex interface_mutex;
+    int lines_offset = 0;
+    void scroll_text(int line_count);
+    #ifndef USE_CURSES
+    #define PRINT_EXCEPT_N_LINES 1
     std::list<std::string> lines; 
-    #define PRINT_EXCEPT_N_LINES 1  
-
+    std::pair<unsigned int, unsigned int> terminal_size;
+    std::string getline()
+    {
+        std::string ret;
+        std::getline(std::cin, ret);
+        return ret;
+    }
     #ifdef _WIN32
     std::pair<unsigned int, unsigned int> get_terminal_size()
     {
@@ -67,33 +72,20 @@ namespace ui
         for(unsigned int i = from; i<to; i++)
         {
             move_cursor(1,i);
-            std::cout << "\033[K";
+            std::cout << CLEAR_LINE;
         }
         restore_cursor();
     }
-
-    #ifdef _WIN32
-    bool get_page_up()
+    void prompt(const std::string& str)
     {
-        return (GetAsyncKeyState(VK_F2) & 0x8000);
+        std::unique_lock lock(interface_mutex);
+        save_cursor();
+        move_cursor(terminal_size.first-1,1);
+        auto spaces = terminal_size.second - parsing::strip_ansi(str).length() - 2;
+        std::cout << CLEAR_LINE << PROMPT_COLOR << ' ' << str << std::string(spaces,' ') << RESET;
+        restore_cursor();
     }
-    bool get_page_down()
-    {
-        return (GetAsyncKeyState(VK_F3) & 0x8000);
-    }
-    #else
-    bool get_page_up()
-    {
-        return false;
-    }
-    bool get_page_down()
-    {
-        return false;
-    }
-    #endif
-    int lines_offset = 0;
-
-    void _reprint_lines()
+    void redraw_lines()
     {
         clear_lines(1,terminal_size.first-PRINT_EXCEPT_N_LINES);
         save_cursor();
@@ -112,8 +104,199 @@ namespace ui
         }
         restore_cursor();
     }
+    void print(const std::string& str)
+    {
+        std::unique_lock lines_lock(interface_mutex);
+        auto line = str;
+        while(parsing::strip_ansi(line).length() > terminal_size.second)
+        {
+            auto pos = parsing::ansi_len(line,terminal_size.second);
+            auto to_add = line.substr(0,pos);
+            line = line.substr(pos);
+            lines.push_front(to_add);
+        }
+        if(line.length() != 0)
+        {
+            lines.push_front(line);
+        }
+        redraw_lines();
+    }
+    void init()
+    {
+        terminal_size = get_terminal_size();
+        move_cursor(terminal_size.first,1);
+        clear();
+    }
+    void fini()
+    {
 
-    void _scroll(int line_count)
+    }
+    #else
+    WINDOW* scroller_window = nullptr;
+    WINDOW* input_window = nullptr;
+    std::list<std::vector<std::pair<char,int>>> lines;
+    #ifndef _WIN32
+    int mvwdeleteln(WINDOW* win, int line, int col)
+    {
+        for(int i = col; i<COLS; i++)
+        {
+            mvwdelch(win,line,i);
+        }
+        return 0;
+    }
+    #endif
+    void print_colored_line(int line_number,std::vector<std::pair<char,int>> colored_line)
+    {
+        int iterator = 0;
+        for(const auto& c: colored_line)
+        {   
+            wattron(scroller_window,COLOR_PAIR(c.second));
+            mvwaddch(scroller_window,line_number,iterator,c.first);
+            wattroff(scroller_window,COLOR_PAIR(c.second));
+            iterator ++;
+        }
+    }
+    void redraw_lines()
+    {
+        wclear(scroller_window);
+        auto iterator = lines.begin();
+        for(unsigned int i = 0;iterator!=lines.end() and i < (unsigned)lines_offset; i++)
+            iterator++;
+        for(int i = 0; i <= LINES - 2 - 1; i++)
+        {
+            if(iterator != lines.end())
+            {
+                print_colored_line(LINES - 2 - i - 1,*iterator);
+                iterator++;
+            }     
+        }
+        wrefresh(scroller_window);
+    }
+    void _scroll_text(int line_count);
+    std::string getline()
+    {
+        std::string ret;
+        int c;
+        bool done = false;
+        int cursor = 0;
+        while(not done){
+            c = getch();
+
+            std::unique_lock lock(interface_mutex);
+            if(c == -1)
+                continue;
+            if(c=='\n')
+                break;
+            switch (c)
+            {
+            case KEY_BACKSPACE:
+            case '\b':
+                if(cursor > 0)
+                {
+                    ret.erase(cursor-1,1);
+                    cursor--;
+                }
+                break;
+            case KEY_LEFT:
+                if(cursor > 0)
+                    cursor--;
+                break;
+            case KEY_RIGHT:
+                if(cursor < ret.length())
+                    cursor++;
+                break;
+            case KEY_HOME:
+                cursor = 0;
+                break;
+            case KEY_END:
+                cursor = (int)ret.length();
+                break;
+            case KEY_UP:
+                _scroll_text(1);
+                break;
+            case KEY_DOWN:
+                _scroll_text(-1);
+                break;
+            case KEY_SEND:
+                lines_offset = 0;
+                break;
+            default:
+                ret.insert(ret.begin()+cursor,c);
+                cursor ++;
+                break;
+            }
+            mvwaddstr(input_window,1,0,(ret + std::string(COLS - ret.length() + 1,' ')).c_str());
+            move(LINES-1,cursor);
+            wrefresh(input_window);
+        }
+        lines_offset = 0;
+        mvwaddstr(input_window,1,0,std::string(COLS,' ').c_str());
+        move(LINES-1,0);
+        wrefresh(input_window);
+        return ret;
+    }
+    void prompt(const std::string& str)
+    {
+        std::unique_lock lock(interface_mutex);
+        wattron(input_window,COLOR_PAIR(1));
+        mvwdeleteln(input_window,0,0);
+        mvwaddstr(input_window,0,0,(' '+str+std::string(COLS-str.length()-1,' ')).c_str());
+        wattroff(input_window,COLOR_PAIR(1));
+        wrefresh(input_window);
+    }
+    void print(const std::string& str)
+    {
+        std::unique_lock lines_lock(interface_mutex);
+        auto line = parsing::curses_split_color(str);
+        while(line.size() > COLS)
+        {
+            auto pos = COLS;
+            auto to_add = std::vector(line.begin(),line.begin()+pos);
+            line = std::vector(line.begin()+pos,line.end());
+            lines.push_front(to_add);
+        }
+        if(line.size() != 0)
+        {
+            lines.push_front(line);
+        }
+        redraw_lines();
+    }
+    void init()
+    {
+        initscr();
+        clear();
+        if(has_colors())
+        {
+            start_color();
+        }
+        cbreak();
+        noecho();
+        intrflush(stdscr, FALSE);
+        keypad(stdscr,true);
+        
+        scroller_window = newwin(LINES - 2, COLS, 0, 0);
+        input_window = newwin(2,COLS,LINES-2,0);
+
+        init_pair(1,COLOR_BLACK,COLOR_WHITE); // INVERTED
+        init_pair(2,COLOR_MAGENTA,COLOR_BLACK); // HIGHLIGHT
+        init_pair(3,COLOR_RED,COLOR_BLACK);// ERR_TAG      
+        init_pair(4,COLOR_GREEN,COLOR_BLACK);// MESSAGE_PEER 
+        init_pair(5,COLOR_YELLOW,COLOR_BLACK);// DBG_TAG      
+        init_pair(6,COLOR_BLUE,COLOR_BLACK);// MSG_TAG      
+        init_pair(7,COLOR_CYAN,COLOR_BLACK);// TAG          
+        init_pair(8,COLOR_WHITE,COLOR_BLACK);// MESSAGE_TEXT
+
+        wrefresh(scroller_window);
+        wrefresh(input_window);
+    }
+    void fini()
+    {
+        delwin(scroller_window);
+        delwin(input_window);
+        endwin();
+    }
+    #endif
+    void _scroll_text(int line_count)
     {
         lines_offset += line_count;
         if(lines_offset < 0)
@@ -123,86 +306,13 @@ namespace ui
         
         if(line_count != 0)
         {
-            _reprint_lines();
+            redraw_lines();
         }
     }
-
-    void scroll(int line_count)
+    void scroll_text(int line_count)
     {
-        std::unique_lock lines_lock(lines_mutex);
-        _scroll(line_count);
+        std::unique_lock lines_lock(interface_mutex);
+        _scroll_text(line_count);
     }
 
-    void prompt(std::string prompt_text)
-    {
-        save_cursor();
-        move_cursor(terminal_size.first-1,1);
-        auto spaces = terminal_size.second - parsing::strip_ansi(prompt_text).length() - 2;
-        std::cout << CLEAR_LINE << PROMPT_COLOR << ' ' << prompt_text << std::string(spaces,' ') << RESET;
-        restore_cursor();
-    }
-
-    
-    
-    void reprint_lines()
-    {
-        std::unique_lock lines_lock(lines_mutex);
-        _reprint_lines();
-    }    
-
-    void add_line(std::string line)
-    {
-        std::unique_lock lines_lock(lines_mutex);
-        while(parsing::strip_ansi(line).length() > terminal_size.second or line.find('\n') != line.npos)
-        {
-            auto where_newline = parsing::strip_ansi(line).find('\n');
-            if(where_newline != line.npos and where_newline < terminal_size.second)
-            {// break line on \n
-                auto pos = parsing::ansi_len(line,where_newline);
-                auto to_add = line.substr(0,pos);
-                line = line.substr(pos+1);
-                lines.push_front(to_add);
-            }
-            else
-            {// break line on length
-                auto pos = parsing::ansi_len(line,terminal_size.second);
-                auto to_add = line.substr(0,pos);
-                line = line.substr(pos);
-                lines.push_front(to_add);
-            }
-        }
-        if(line.length() != 0)
-        {
-            lines.push_front(line);
-        }
-    }
-
-    void input_handler()
-    {
-        #ifndef NO_TERMINAL_UI
-        while(true)
-        {
-            #ifdef _WIN32
-            auto page_down = get_page_down();
-            auto page_up = get_page_up();
-            int move = page_down and not page_up? -1 : page_up and not page_down? 1 : 0;
-            
-            {
-                std::unique_lock lines_lock(lines_mutex);
-                _scroll(move);
-            }
-            boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-            #else
-            return;
-            #endif
-        }
-        #endif
-    }
-    void init()
-    {
-        terminal_size = get_terminal_size();
-        move_cursor(terminal_size.first,1);
-        multithreading::add_service("input_handler",input_handler);
-        clear();
-    }
 }

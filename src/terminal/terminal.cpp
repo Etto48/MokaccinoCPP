@@ -11,6 +11,7 @@
 #include "../network/udp/udp.hpp"
 #include "../multithreading/multithreading.hpp"
 #include "../logging/logging.hpp"
+#include "../ui/ui.hpp"
 #include "commands/commands.hpp"
 #include "prompt.hpp"
 namespace terminal
@@ -129,8 +130,7 @@ namespace terminal
                     std::unique_lock out_lock(logging::output_mutex);
                     prompt();
                 }
-                std::string line;
-                std::getline(std::cin,line);
+                auto line = ui::getline();
                 if(line.size() > 0)
                 {
                     bool run_command = false;

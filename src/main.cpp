@@ -180,11 +180,12 @@ int main(int argc, char* argv[])
         #else
         int ret = 0;
         #endif
-
+       
         //WAIT FOR EXIT
         multithreading::wait_termination();
         multithreading::stop_all();
         multithreading::join();
+        ui::fini();
         return ret;
     }
     return 0;
