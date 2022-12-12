@@ -29,6 +29,7 @@ namespace logging
                 file << "--- Mokaccino log started ---" << std::endl;
             }
         }
+        logging::log("DBG","Logging initialized");
     }
     void log(std::string log_type,std::string message)
     {

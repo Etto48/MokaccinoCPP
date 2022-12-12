@@ -11,6 +11,7 @@
 #include <curses.h>
 #endif
 #include "../parsing/parsing.hpp"
+#include "../logging/logging.hpp"
 namespace ui
 {
     std::mutex interface_mutex;
@@ -180,15 +181,14 @@ namespace ui
         getline_buffer = "";
         std::string ret;
         int c;
-        bool done = false;
         getline_cursor = 0;
-        while(not done){
+        while(true){
             c = getch();
 
             std::unique_lock lock(interface_mutex);
             if(c == -1)
                 continue;
-            if(c=='\n')
+            if(c=='\n' or c=='\r')
             {
                 ret = getline_buffer;
                 getline_buffer = "";
@@ -227,12 +227,21 @@ namespace ui
                 break;
             case KEY_SEND:
                 lines_offset = 0;
+                redraw_lines();
+                break;
+            case KEY_CTRL_C:
+                return "exit";
                 break;
             default:
-                getline_buffer.insert(getline_buffer.begin()+getline_cursor,c);
-                getline_cursor ++;
+                if(c>=-1 and c<=255 and std::isprint(c))
+                {
+                    getline_buffer.insert(getline_buffer.begin()+getline_cursor,c);
+                    getline_cursor ++;
+                }
                 break;
             }
+            //auto keycode = std::to_string(c);
+            //mvwaddstr(input_window,0,COLS-5,(keycode+std::string(5-keycode.length(),' ')).c_str());
             mvwaddstr(input_window,1,0,(getline_buffer + std::string(COLS - getline_buffer.length() + 1,' ')).c_str());
             move(LINES-1,getline_cursor);
             wrefresh(input_window);
@@ -279,9 +288,9 @@ namespace ui
         {
             start_color();
         }
-        cbreak();
+        raw();
         noecho();
-        intrflush(stdscr, FALSE);
+        intrflush(stdscr,false);
         keypad(stdscr,true);
         
         scroller_window = newwin(LINES - 2, COLS, 0, 0);

@@ -18,6 +18,8 @@
     #define CLEAR_SCREEN    "\033[2J"
     #define SAVE_CURSOR     "\033[s"
     #define RESTORE_CURSOR  "\033[u"
+    #define KEY_CTRL_C      3
+     
     #else
     #define ERR_TAG         ""
     #define PROMPT_TAG      ""
