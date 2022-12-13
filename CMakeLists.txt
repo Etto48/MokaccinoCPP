@@ -64,6 +64,14 @@ else()
     message(STATUS "Disabling CURSES")
     add_compile_definitions(NO_CURSES)
 endif()
+
+option(DISABLE_CLOCK "If enabled the output will no more include a clock" OFF)
+if(DISABLE_CLOCK)
+    add_compile_definitions(NO_CLOCK)
+    message(STATUS "Disabling clock")
+endif()
+
+
 #link and include
 include_directories(${Boost_INCLUDE_DIRS}) 
 link_libraries(${Boost_LIBRARIES} portaudio_static Opus::opus)

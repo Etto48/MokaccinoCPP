@@ -4,7 +4,10 @@
 #include <iostream>
 #include <fstream>
 #include <mutex>
+#include <sstream>
 #include <stdint.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
 #include "../terminal/prompt.hpp"
 #include "../multithreading/multithreading.hpp"
 #include "../parsing/parsing.hpp"
@@ -14,6 +17,7 @@ namespace logging
 {
     std::mutex output_mutex;
     std::string path_to_log;
+    std::string clock_format;
     void init(const std::string& log_file)
     {
         path_to_log = log_file;
@@ -31,12 +35,26 @@ namespace logging
         }
         logging::log("DBG","Logging initialized");
     }
+    void set_time_format(const std::string& time_format)
+    {
+        logging::clock_format = time_format;
+    }
     void log(std::string log_type,std::string message)
     {
         static std::string last_prefix;
+        static std::string last_time;
         unsigned int verbosity = DEBUG? 2 : 1;
         std::string terminal_prefix;
         std::string file_prefix;
+        std::string time;
+        #ifndef NO_CLOCK
+        auto* facet = new boost::posix_time::time_facet{clock_format.c_str()};
+        std::stringstream ss;
+        std::locale locale{ss.getloc(),facet};
+        ss.imbue(locale);
+        ss << boost::posix_time::second_clock().local_time();
+        time = ss.str();
+        #endif
         unsigned int verbosity_required = 0;
         if(log_type=="ERR")
         {
@@ -86,19 +104,25 @@ namespace logging
                 }
                 else
                     last_prefix = terminal_prefix;
+
+                if(time == last_time)
+                    time = std::string(parsing::strip_ansi(last_time).length(),' ');
+                else
+                    last_time = time;
+
                 #ifdef NO_ANSI_ESCAPE
-                std::cout << terminal_prefix << parsing::strip_ansi(message) << std::endl;
+                std::cout << time << terminal_prefix << parsing::strip_ansi(message) << std::endl;
                 #else
                 #ifdef NO_TERMINAL_UI
-                std::cout << "\r" CLEAR_LINE << terminal_prefix << message << std::endl;
+                std::cout << "\r" CLEAR_LINE << time << terminal_prefix << message << std::endl;
                 #else
-                ui::print(terminal_prefix + message);
+                ui::print(time + terminal_prefix, message);
                 #endif
                 #endif
                 if(path_to_log.length() > 0)
                 {
                     std::fstream file(path_to_log,std::ios::out | std::ios::app);
-                    file << file_prefix << parsing::strip_ansi(message) << std::endl;
+                    file << parsing::strip_ansi(time) << file_prefix << parsing::strip_ansi(message) << std::endl;
                 }
                 if(not IsDebuggerPresent())
                     terminal::prompt();

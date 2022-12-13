@@ -122,6 +122,26 @@ namespace ui
         }
         redraw_lines();
     }
+    void print(const std::string& prefix, const std::string& msg)
+    {
+        std::unique_lock lines_lock(interface_mutex);
+        auto plen = parsing::strip_ansi(prefix).length();
+        auto line = prefix+msg;
+        auto filler = std::string(plen,' ');
+        bool newline = false;
+        while(parsing::strip_ansi(line).length() > terminal_size.second)
+        {
+            newline = true;
+            auto pos = parsing::ansi_len(line,terminal_size.second);
+            auto to_add = line.substr(0,pos);
+            line = line.substr(pos);
+            line = filler + line;
+            lines.push_front(to_add);
+        }
+        if((parsing::strip_ansi(line).length() > plen and newline) or line.size() != 0)
+            lines.push_front(line);
+        redraw_lines();    
+    }
     void init()
     {
         terminal_size = get_terminal_size();
@@ -242,7 +262,9 @@ namespace ui
             }
             //auto keycode = std::to_string(c);
             //mvwaddstr(input_window,0,COLS-5,(keycode+std::string(5-keycode.length(),' ')).c_str());
+            wattron(input_window,COLOR_PAIR(2));
             mvwaddstr(input_window,1,0,(getline_buffer + std::string(COLS - getline_buffer.length() + 1,' ')).c_str());
+            wattroff(input_window,COLOR_PAIR(2));
             move(LINES-1,getline_cursor);
             wrefresh(input_window);
         }
@@ -259,7 +281,9 @@ namespace ui
         mvwdeleteln(input_window,0,0);
         mvwaddstr(input_window,0,0,(' '+str+std::string(COLS-str.length()-1,' ')).c_str());
         wattroff(input_window,COLOR_PAIR(1));
+        wattron(input_window,COLOR_PAIR(2));
         mvwaddstr(input_window,1,0,getline_buffer.c_str());
+        wattroff(input_window,COLOR_PAIR(2));
         wmove(input_window,1,getline_cursor);
         wrefresh(input_window);
     }
@@ -275,10 +299,28 @@ namespace ui
             lines.push_front(to_add);
         }
         if(line.size() != 0)
-        {
             lines.push_front(line);
-        }
         redraw_lines();
+    }
+    void print(const std::string& prefix, const std::string& msg)
+    {
+        std::unique_lock lines_lock(interface_mutex);
+        auto plen = parsing::strip_ansi(prefix).length();
+        auto line = parsing::curses_split_color(prefix+msg);
+        auto filler = std::vector{plen,std::pair{' ',0}};
+        bool newline = false;
+        while(line.size() > COLS)
+        {
+            newline = true;
+            auto pos = COLS;
+            auto to_add = std::vector(line.begin(),line.begin()+pos);
+            line = std::vector(line.begin()+pos,line.end());
+            line.insert(line.begin(),filler.begin(),filler.end());
+            lines.push_front(to_add);
+        }
+        if((line.size() > plen and newline) or line.size() != 0)
+            lines.push_front(line);
+        redraw_lines();    
     }
     void init()
     {

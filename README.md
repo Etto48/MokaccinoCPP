@@ -65,6 +65,9 @@ default_action = "prompt"
 [terminal]
 # you will run these commands after startup
 startup_commands = ["msg server1.com hello everybody","voice start server2.net"]
+
+# the format in which the time will be displayed near each message
+time_format = "[%H:%M:%S]"
 ```
 
 ## Network protocol

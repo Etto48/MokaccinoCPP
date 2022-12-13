@@ -18,6 +18,12 @@ namespace logging
      */
     void init(const std::string& log_file = "");
     /**
+     * @brief initialize the time format from the config file
+     * 
+     * @param time_format the format string
+     */
+    void set_time_format(const std::string& time_format);
+    /**
      * @brief print something on the screen
      * 
      * @param log_type one of "ERR" "PRM" "MSG" "DBG"

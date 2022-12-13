@@ -97,6 +97,7 @@ int main(int argc, char* argv[])
                 return -1;
             }
         }
+        logging::set_time_format(config["terminal"]["time_format"].value_or<std::string>(TAG "[" RESET "%H:%M:%S" TAG "]") + RESET " ");
         
         if(not config_loaded and username.length() == 0)
         {

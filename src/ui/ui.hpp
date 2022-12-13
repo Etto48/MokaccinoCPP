@@ -27,6 +27,7 @@ namespace ui
      * @param str the line to print
      */
     void print(const std::string& str);
+    void print(const std::string& prefix, const std::string& msg);
     /**
      * @brief initialize the module
      * 
