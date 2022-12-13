@@ -4,8 +4,6 @@
 [![Windows](https://github.com/Etto48/MokaccinoCPP/actions/workflows/windows-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/windows-cmake.yml)
 [![MacOS](https://github.com/Etto48/MokaccinoCPP/actions/workflows/macos-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/macos-cmake.yml)
 
-[![Microsoft C++ Code Analysis](https://github.com/Etto48/MokaccinoCPP/actions/workflows/msvc.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/msvc.yml)
-
 Mokaccino is a simple P2P application written in C++ capable of creating unstructured networks for sending text messages and using VoIP
 
 ## Building
