@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <boost/asio/ip/udp.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 namespace network::connection
 {
     /**
