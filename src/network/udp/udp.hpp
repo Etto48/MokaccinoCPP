@@ -9,6 +9,16 @@
 namespace network::udp
 {
     /**
+     * @brief mutex used by timecheck to access the requested_clients structure
+     * 
+     */
+    extern std::mutex requested_clients_mutex;
+    /**
+     * @brief structure that represents every request made to a server, used by timecheck to decide if there was a timeout on the request
+     * 
+     */
+    extern std::map<std::string,boost::posix_time::ptime> requested_clients;
+    /**
      * @brief contains every connection to another peer (if DEBUG is set it contains even a "loopback" connection)
      * 
      */
@@ -70,4 +80,19 @@ namespace network::udp
      * @param name the peer to query for
      */
     void server_request(const std::string& name);
+    /**
+     * @brief this will be called when a server request was successfull and the 
+     * requested user successfully connected
+     * 
+     * @param name name of the connected user 
+     * @return true if the user was requested to another peer
+     * @return false if the user was not requested to another peer
+     */
+    bool server_request_success(const std::string& name);
+    /**
+     * @brief this will be called when a server request has a timeout or a failure
+     * 
+     * @param name name of the user not found
+     */
+    void server_request_fail(const std::string& name);
 }

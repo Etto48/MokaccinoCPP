@@ -276,10 +276,20 @@ namespace ui
     }
     void prompt(const std::string& str)
     {
+        auto prmpt = parsing::strip_ansi(str);
+        bool highlight = false;
+        if(prmpt.length() != str.length())
+        {// ansi escapes were present, highlight the prompt
+            highlight = true;
+        }
         std::unique_lock lock(interface_mutex);
         wattron(input_window,COLOR_PAIR(1));
         mvwdeleteln(input_window,0,0);
-        mvwaddstr(input_window,0,0,(' '+str+std::string(COLS-str.length()-1,' ')).c_str());
+        if(highlight)
+            wattron(input_window,COLOR_PAIR(9));
+        mvwaddstr(input_window,0,0,(' '+prmpt+std::string(COLS-prmpt.length()-1,' ')).c_str());
+        if(highlight)
+            wattroff(input_window,COLOR_PAIR(9));
         wattroff(input_window,COLOR_PAIR(1));
         wattron(input_window,COLOR_PAIR(2));
         mvwaddstr(input_window,1,0,getline_buffer.c_str());
@@ -346,6 +356,7 @@ namespace ui
         init_pair(6,COLOR_BLUE,COLOR_BLACK);// MSG_TAG      
         init_pair(7,COLOR_CYAN,COLOR_BLACK);// TAG          
         init_pair(8,COLOR_WHITE,COLOR_BLACK);// MESSAGE_TEXT
+        init_pair(9,COLOR_WHITE,COLOR_BLUE);// PROMPT_WARN
 
         wrefresh(scroller_window);
         wrefresh(input_window);

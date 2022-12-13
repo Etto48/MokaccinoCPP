@@ -4,6 +4,26 @@
 namespace network::connection
 {
     /**
+     * @brief struct that stores info about the pending connection with another peer
+     * 
+     */
+    struct StatusEntry
+    {
+        std::string expected_message;
+        std::string name;
+        boost::posix_time::ptime registration_time;
+    };
+    /**
+     * @brief used to access information about the pending connections with other peers stored in status_map
+     * 
+     */
+    extern std::mutex status_map_mutex;
+    /**
+     * @brief info about pending connections with other peers
+     * 
+     */
+    extern std::map<boost::asio::ip::udp::endpoint,StatusEntry> status_map;
+    /**
      * @brief the username of this peer
      * 
      */
@@ -30,4 +50,12 @@ namespace network::connection
      * @param expected_name the name expected from the other endpoint
      */
     void connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name);
+    /**
+     * @brief this must be used to notify the connection module that a pending connection timed out
+     * 
+     * @param endpoint the udp endpoint of the user that timed out
+     * @return true if the user was found
+     * @return false if the user was not found
+     */
+    bool connection_timed_out(const boost::asio::ip::udp::endpoint& endpoint);
 }

@@ -170,12 +170,29 @@ namespace network::udp
         }
         send(parsing::compose_message({"REQUEST",name}),connection_map.server());
     }
+    bool server_request_success(const std::string& name)
+    {
+        bool requested = false;
+        {
+            std::unique_lock lock(requested_clients_mutex);
+            if(requested_clients.find(name) != requested_clients.end())
+            {
+                requested = true;
+                requested_clients.erase(name);
+            }
+        }
+        if(requested)
+        {
+            logging::log("MSG","User \"" HIGHLIGHT +name+ RESET "\" found");
+            return true;
+        }
+        return false;
+    }
     void server_request_fail(const std::string& name)
     {
         {
             std::unique_lock lock(requested_clients_mutex);
             requested_clients.erase(name);
         }
-        logging::user_lookup_error_log(name);
     }
 }

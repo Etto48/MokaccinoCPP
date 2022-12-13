@@ -15,11 +15,6 @@ namespace network::connection
     std::string username;
     ConnectionAction default_action = ConnectionAction::PROMPT;
     std::vector<std::string> whitelist;
-    struct StatusEntry
-    {
-        std::string expected_message;
-        std::string name;
-    };
     std::mutex status_map_mutex;
     std::map<boost::asio::ip::udp::endpoint,StatusEntry> status_map;
     bool check_whitelist(const std::string& name)
@@ -33,8 +28,14 @@ namespace network::connection
     }
     void accept_connection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name)
     {
-        status_map[endpoint] = {"CONNECTED",name};
+        status_map[endpoint] = {"CONNECTED",name,boost::posix_time::microsec_clock::local_time()};
         udp::send(parsing::compose_message({"HANDSHAKE",username}),endpoint);
+        logging::log("MSG","Connection accepted from " HIGHLIGHT + name + RESET " at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
+    }
+    void accept_server_request(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name)
+    {
+        status_map[endpoint] = {"HANDSHAKE",name,boost::posix_time::microsec_clock::local_time()};
+        udp::send(parsing::compose_message({"CONNECT",username}),endpoint);
         logging::log("MSG","Connection accepted from " HIGHLIGHT + name + RESET " at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
     }
     void connection()
@@ -76,7 +77,8 @@ namespace network::connection
                     status_map.erase(item.src_endpoint);
                     udp::connection_map.add_user(args[1],item.src_endpoint);
                     udp::send(parsing::compose_message({"CONNECTED",username}),item.src_endpoint);
-                    logging::log("MSG","Connection accepted from " HIGHLIGHT + args[1] + RESET " at " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
+                    if(not udp::server_request_success(args[1]))
+                        logging::log("MSG","Connection accepted from " HIGHLIGHT + args[1] + RESET " at " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
                 }
                 else if(args[0] == "CONNECTED" and args.size() == 2 and status_map[item.src_endpoint].expected_message == "CONNECTED" and status_map[item.src_endpoint].name == args[1])
                 {
@@ -114,15 +116,33 @@ namespace network::connection
                 {
                     try{
                         auto endpoint = parsing::endpoint_from_str(args[2]);
-                        status_map[endpoint] = {"HANDSHAKE",args[1]};
-                        udp::send(parsing::compose_message({"CONNECT",username}),endpoint);
+                        if(check_whitelist(args[1]) or default_action == ConnectionAction::ACCEPT)
+                        {
+                            accept_server_request(item.src_endpoint,args[1]);
+                        }else if(default_action == ConnectionAction::REFUSE)
+                        {
+                            logging::log("MSG","Connection refused automatically from \"" HIGHLIGHT +args[1]+ RESET "\"");
+                        }else
+                            terminal::input(
+                                "User \"" HIGHLIGHT + args[1] + RESET 
+                                "\" (" HIGHLIGHT +item.src_endpoint.address().to_string()+ RESET 
+                                ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET 
+                                ") requested to connect, accept? (y/n)",
+                                [args,item](const std::string& input){
+                                    if(input == "Y" or input == "y")
+                                        accept_server_request(item.src_endpoint,args[1]);
+                                    else
+                                    {
+                                        logging::log("MSG","Connection refused from \"" HIGHLIGHT +args[1]+ RESET "\"");
+                                    }
+                            });
                     }catch(parsing::EndpointFromStrError&)
                     {}
                 }
                 else if(args[0] == "FAIL" and args.size() == 2)
                 {
-                    //TODO: handle not found
-                    logging::log("ERR","User \"" HIGHLIGHT + args[1] + RESET "\" not found from " HIGHLIGHT + item.src + RESET);
+                    udp::server_request_fail(args[1]);
+                    logging::log("ERR","User \"" HIGHLIGHT + args[1] + RESET "\" not found at " HIGHLIGHT + item.src + RESET);
                 }
                 else if(DEBUG and args[0] == "TEST")
                 {
@@ -192,8 +212,18 @@ namespace network::connection
     void connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name)
     {
         std::unique_lock lock(status_map_mutex);
-        status_map[endpoint] = {"HANDSHAKE",expected_name};
+        status_map[endpoint] = {"HANDSHAKE",expected_name,boost::posix_time::microsec_clock::local_time()};
         udp::send(parsing::compose_message({"CONNECT",username}),endpoint);
     }
-
+    bool connection_timed_out(const boost::asio::ip::udp::endpoint& endpoint)
+    {
+        std::unique_lock lock(status_map_mutex);
+        auto iter = status_map.find(endpoint);
+        if(iter != status_map.end())
+        {
+            status_map.erase(endpoint);
+            return true;
+        }
+        return false;
+    }
 }
