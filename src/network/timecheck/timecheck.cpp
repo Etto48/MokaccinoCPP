@@ -17,7 +17,7 @@ namespace network::timecheck
     #define CONFIDENCE 3 // times the avg latency to determine timeout
     #define MAX_STRIKES 3 // subsequent packets lost for disconnect
     #define REQUEST_TIMEOUT 10 // s 
-    #define CONNECTION_TIMEOUT 1 // s
+    #define CONNECTION_TIMEOUT 10 // s
     boost::random::mt19937 rng;
     void timecheck()
     {
@@ -79,19 +79,31 @@ namespace network::timecheck
             {
                 // dead during connection check
                 std::vector<boost::asio::ip::udp::endpoint> failed_connections;
+                std::vector<boost::asio::ip::udp::endpoint> zombie_connection;
                 {
                     std::unique_lock lock_connections(connection::status_map_mutex);
                     for(auto& [endpoint, info]: connection::status_map)
                     {
                         auto now = boost::posix_time::microsec_clock::local_time();
                         if((now - info.registration_time).total_seconds() > CONNECTION_TIMEOUT)
-                            failed_connections.emplace_back(endpoint);
+                        {
+                            if(info.expected_message != "ZOMBIE")
+                                failed_connections.emplace_back(endpoint);
+                            else
+                                zombie_connection.emplace_back(endpoint);
+                        }
                     }
                 }
                 for(auto& endpoint: failed_connections)
                 {
                     if(connection::connection_timed_out(endpoint))
-                        logging::log("ERR","Connection with " HIGHLIGHT +endpoint.address().to_string()+ RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
+                        logging::log("ERR","Connection with " HIGHLIGHT +endpoint.address().to_string()+ RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET + " timed out");
+                    boost::this_thread::interruption_point();
+                    boost::this_thread::yield();
+                }
+                for(auto& endpoint: zombie_connection)
+                {
+                    connection::connection_timed_out(endpoint);
                     boost::this_thread::interruption_point();
                     boost::this_thread::yield();
                 }

@@ -15,6 +15,14 @@ set(Boost_DEBUG OFF)
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)
 find_package(portaudio REQUIRED)
 find_package(Opus REQUIRED)
+find_package(OpenSSL REQUIRED)
+
+if(OPENSSL_FOUND)
+    include_directories(${OPENSSL_INCLUDE_DIR})
+    link_libraries(OpenSSL::Crypto)
+else()
+    add_compile_definitions(NO_OPENSSL)
+endif()
 
 #debug
 if(NOT CMAKE_BUILD_TYPE)

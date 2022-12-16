@@ -2,6 +2,7 @@
 #include "../defines.hpp"
 #include "../network/udp/udp.hpp"
 #include "curses_ansi_lookup.hpp"
+#include "../network/authentication/authentication.hpp"
 #ifndef MSG_SPLITTING_CHAR
     #define MSG_SPLITTING_CHAR ' '
 #endif
@@ -250,5 +251,26 @@ namespace parsing
             }
         }
         return ret;
+    }
+    void sign_and_append(std::string& m)
+    {
+        auto signature = network::authentication::sign(m);
+        m = m + MSG_SPLITTING_CHAR + signature;
+    }
+    bool verify_signature_from_message(const std::string& sm, const std::string& name)
+    {
+        auto last_space = sm.find_last_of(MSG_SPLITTING_CHAR);
+        if(last_space == sm.npos)
+            return false;
+        auto m = sm.substr(0,last_space);
+        auto signature = sm.substr(last_space+1);
+        while (m.ends_with(MSG_SPLITTING_CHAR))
+        {
+            if(m.length()<2)
+                return false;
+            if(m[m.length()-2] != ESCAPE_CHAR)
+                m.pop_back();
+        }
+        return network::authentication::verify(m,signature,name);   
     }
 }

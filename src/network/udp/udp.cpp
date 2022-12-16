@@ -53,6 +53,7 @@ namespace network::udp
     void handle_message(const std::string& name,const boost::asio::ip::udp::endpoint& endpoint, std::string msg)
     {
         msg.pop_back();//remove '\n'
+        
         /*
         if(name.length() == 0)
             logging::message_log(endpoint.address().to_string() + ":" + std::to_string(endpoint.port()),msg);

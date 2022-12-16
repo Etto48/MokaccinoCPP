@@ -22,7 +22,7 @@ jobs:
 
     - name: Install Brew packages
       run: |
-        brew install boost
+        brew install boost openssl
 
     - name: Cache PortAudio
       id: portaudio-cache

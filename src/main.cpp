@@ -13,6 +13,7 @@
 #include "network/messages/messages.hpp"
 #include "network/audio/audio.hpp"
 #include "network/udp/udp.hpp"
+#include "network/authentication/authentication.hpp"
 #include "parsing/parsing.hpp"
 #include "ui/ui.hpp"
 #include "toml.hpp"
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
                 return -1;
             }
         }
-        logging::set_time_format(config["terminal"]["time_format"].value_or<std::string>(TAG "[" RESET "%H:%M:%S" TAG "]") + RESET " ");
+        logging::set_time_format(config["terminal"]["time_format"].value_or<std::string>(DEFAULT_TIME_FORMAT)+RESET);
         
         if(not config_loaded and username.length() == 0)
         {
@@ -138,6 +139,7 @@ int main(int argc, char* argv[])
 
         //INITIALIZATIONS
         logging::supervisor::init(60);
+        network::authentication::init();
         network::udp::init(config["network"]["port"].value_or(args["port"].as<uint16_t>()));
         network::connection::init(
             config["network"]["username"].value_or(username),
@@ -181,7 +183,7 @@ int main(int argc, char* argv[])
         #else
         int ret = 0;
         #endif
-       
+
         //WAIT FOR EXIT
         multithreading::wait_termination();
         multithreading::stop_all();

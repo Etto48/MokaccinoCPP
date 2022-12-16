@@ -85,9 +85,25 @@ Mokaccino uses an ascii protocol over UDP (because UDP hole punching is easier t
 
 The connection is established with a 3 way handshake
 
-1) A: `CONNECT <A's username>`
-2) B: `HANDSHAKE <B's username>`
-3) A: `CONNECTED <A's username>`
+1) A: `CONNECT <A's username> <A's nonce> <A's public key> <A's signature>`
+2) B: `HANDSHAKE <B's username> <B's nonce> <B's public key> <B's signature>`
+3) A: `CONNECTED`
+
+B must store A's public key for the next time and verify the signature received from A
+
+A must store B's public key for the next time and verify the signature received from B
+
+If a peer has saved a public key it must ignore every other key sent to him from the same user
+
+#### Signature
+
+The signature must be calculated from the original message `m` (the text of the message excluded the signature) in this way:
+
+`Signature = b64_encode(RSA_encode(SHA256(m),K_priv))`
+
+And the verification must be calculated on the signed message `sm = '<m> <Signature>'` this way
+
+`Valid = SHA256(m) == RSA_decode(b64_decode(Signature),K_pub)`
 
 #### Direct connection
 
@@ -103,7 +119,9 @@ A to SERVER: `REQUEST <B's username>`
 
 Then if the server is connected to a user with the requested username
 
-SERVER to B: `REQUESTED <A's username> <A's IP>:<A's port>`
+SERVER to A: `KEY <B's username> <B's public key>`
+
+SERVER to B: `REQUESTED <A's username> <A's IP>:<A's port> <A's public key>`
 
 Now B tries to connect to A with the **direct connection** method
 

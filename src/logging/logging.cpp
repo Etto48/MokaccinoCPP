@@ -17,7 +17,7 @@ namespace logging
 {
     std::mutex output_mutex;
     std::string path_to_log;
-    std::string clock_format;
+    std::string clock_format = DEFAULT_TIME_FORMAT;
     void init(const std::string& log_file)
     {
         path_to_log = log_file;
@@ -97,18 +97,22 @@ namespace logging
             }
             else
             {
+                if(time == last_time) 
+                {// skip timestamp
+                    time = std::string(parsing::strip_ansi(last_time).length(),' ');
+                }
+                else
+                    last_time = time;
+
                 if(terminal_prefix == last_prefix)
-                {
+                {//skip terminal prefix
                     terminal_prefix = std::string(parsing::strip_ansi(last_prefix).length(),' ');
                     file_prefix = terminal_prefix;
                 }
                 else
                     last_prefix = terminal_prefix;
 
-                if(time == last_time)
-                    time = std::string(parsing::strip_ansi(last_time).length(),' ');
-                else
-                    last_time = time;
+                
 
                 #ifdef NO_ANSI_ESCAPE
                 std::cout << time << terminal_prefix << parsing::strip_ansi(message) << std::endl;

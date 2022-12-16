@@ -95,4 +95,19 @@ namespace parsing
      * @return a vector of pairs (char, color info)
      */
     std::vector<std::pair<char,int>> curses_split_color(const std::string& str);
+    /**
+     * @brief sign the message m and append the message signature to it
+     * 
+     * @param m message to sign
+     */
+    void sign_and_append(std::string& m);
+    /**
+     * @brief check if the message sm ('<m> <signature>') is correctly signed
+     * 
+     * @param sm message with signature appended
+     * @param name the name of the peer that sent the message
+     * @return true if the signature is valid
+     * @return false if the signature is not valid
+     */
+    bool verify_signature_from_message(const std::string& sm, const std::string& name);
 }

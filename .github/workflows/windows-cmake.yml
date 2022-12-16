@@ -21,6 +21,10 @@ jobs:
     - uses: actions/checkout@v3
     - uses: seanmiddleditch/gha-setup-vsdevenv@master
 
+    - name: Install Chocolatey packages
+      run: |
+        choco install openssl
+
     - name: Cache PDCurses
       id: pdcurses-cache
       uses: actions/cache@v3
