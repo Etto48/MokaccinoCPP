@@ -120,6 +120,7 @@ namespace network::authentication
         BIO *bp_public = nullptr;
         BIO *bp_private = nullptr;
         BIGNUM *bne = nullptr;
+        std::filesystem::create_directories(MOKACCINO_ROOT);
         if(not std::filesystem::is_regular_file(PUBKEY_PATH) or not std::filesystem::is_regular_file(PRIVKEY_PATH))
         {//gen key
             gen_and_load_keys(3072);
