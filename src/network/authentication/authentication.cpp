@@ -6,6 +6,7 @@
 #include <openssl/buffer.h> 
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#include <openssl/err.h>
 #include <exception>
 #include <filesystem>
 #include <map>
@@ -102,10 +103,13 @@ namespace network::authentication
             logging::log("DBG","RSA keypair correctly generated and saved");
         }catch(std::exception&)
         {//free and error
+            auto code = ERR_get_error();
             BIO_free_all(bp_public);
             BIO_free_all(bp_private);
             BN_free(bne);
-            logging::log("ERR","Error generating RSA keypair");
+            std::unique_ptr<char> error_string{new char[256]};
+            ERR_error_string(code,error_string.get());
+            logging::log("ERR","Error generating RSA keypair: " + std::string(error_string.get()));
         }
         BIO_free_all(bp_public);
         BIO_free_all(bp_private);
@@ -132,10 +136,13 @@ namespace network::authentication
                 logging::log("DBG","RSA keypair correctly loaded");
             }catch(std::exception&)
             {
+                auto code = ERR_get_error();
                 BIO_free_all(bp_public);
                 BIO_free_all(bp_private);
                 RSA_free(local_key);
-                logging::log("ERR","Error loading RSA keypair");
+                std::unique_ptr<char> error_string{new char[256]};
+                ERR_error_string(code,error_string.get());
+                logging::log("ERR","Error loading RSA keypair: " + std::string(error_string.get()));
             }
             BIO_free_all(bp_public);
             BIO_free_all(bp_private);

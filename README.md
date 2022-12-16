@@ -117,9 +117,11 @@ We will call the middle peer server and the two peers A and B
 
 A to SERVER: `REQUEST <B's username>`
 
-Then if the server is connected to a user with the requested username
+If the server knows the B's private key
 
 SERVER to A: `KEY <B's username> <B's public key>`
+
+Then if the server is connected to a user with the requested username
 
 SERVER to B: `REQUESTED <A's username> <A's IP>:<A's port> <A's public key>`
 
