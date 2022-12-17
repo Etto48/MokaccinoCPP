@@ -91,7 +91,7 @@ namespace logging
                 std::cout << "\r" CLEAR_LINE << terminal_prefix << message << ": ";
                 std::cout.flush();
                 #else
-                ui::prompt(message);
+                ui::prompt(RESET+message);
                 #endif
                 #endif
             }

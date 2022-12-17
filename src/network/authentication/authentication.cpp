@@ -1,5 +1,6 @@
 #include "authentication.hpp"
 #include "../../defines.hpp"
+#include "../../ansi_escape.hpp"
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
@@ -100,7 +101,7 @@ namespace network::authentication
             if(PEM_write_bio_RSAPublicKey(bp_public,local_key) != 1)
                 throw std::exception{};
 
-            logging::log("DBG","RSA keypair correctly generated and saved");
+            logging::log("DBG","RSA keypair correctly generated and saved at \"" HIGHLIGHT +PRIVKEY_PATH + RESET "\" and \"" HIGHLIGHT+PUBKEY_PATH+ RESET"\"");
         }catch(std::exception&)
         {//free and error
             auto code = ERR_get_error();
@@ -134,7 +135,7 @@ namespace network::authentication
                     throw std::exception{};
                 if((local_key = PEM_read_bio_RSAPrivateKey(bp_private,&local_key,nullptr,nullptr)) == nullptr)
                     throw std::exception{};
-                logging::log("DBG","RSA keypair correctly loaded");
+                logging::log("DBG","RSA keypair correctly loaded from \"" HIGHLIGHT +PRIVKEY_PATH + RESET "\" and \"" HIGHLIGHT+PUBKEY_PATH+ RESET"\"");
             }catch(std::exception&)
             {
                 auto code = ERR_get_error();

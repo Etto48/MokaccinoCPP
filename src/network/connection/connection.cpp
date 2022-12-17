@@ -214,6 +214,7 @@ namespace network::connection
     void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action)
     {
         username = local_username;
+        logging::log("DBG","Username set as \"" HIGHLIGHT + username + RESET "\"");
         network::connection::whitelist = whitelist;
         if(default_action == "accept")
         {

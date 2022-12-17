@@ -250,7 +250,7 @@ namespace ui
                 redraw_lines();
                 break;
             case KEY_CTRL_C:
-                return "exit";
+                throw KeyboardInterrupt{};
                 break;
             default:
                 if(c>=-1 and c<=255 and std::isprint(c))

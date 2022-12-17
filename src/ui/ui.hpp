@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <exception>
 namespace ui
 {
     /**
@@ -8,9 +9,14 @@ namespace ui
      * @param line_count this is the number of lines, positive for upwards, negative for downwards
      */
     void scroll_text(int line_count);
+    class KeyboardInterrupt: public std::exception
+    {
+    public:
+        const char* what(){return "KeyboardInterrupt";}
+    };
     /**
      * @brief blocking get line function, returns a string when the users hits enter, while the function is running 
-     * even the not printable keys will be handled
+     * even the not printable keys will be handled, if CTRL-C is hit throws KeyboardInterrupt
      * 
      * @return a string inputted from the user
      */

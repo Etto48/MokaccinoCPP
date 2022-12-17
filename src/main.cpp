@@ -100,19 +100,33 @@ int main(int argc, char* argv[])
         }
         logging::set_time_format(config["terminal"]["time_format"].value_or<std::string>(DEFAULT_TIME_FORMAT)+RESET);
         
-        if(not config_loaded and username.length() == 0)
+        username = config["network"]["username"].value_or(username);
+        if(username.length() == 0)
         {
-            /*std::cout << "\r" CLEAR_LINE "Username: ";
-            std::cout.flush();
-            std::cin >> username;*/
-            username = terminal::blocking_input("Username");
+            logging::log("ERR","Missing required configuration for username");
+            username = terminal::blocking_input("Username:");
 
             std::filesystem::create_directories(MOKACCINO_ROOT);
-            std::fstream new_config{CONFIG_PATH,std::ios::out | std::ios::trunc};
-            toml::table default_config{
-                { "network", toml::table{ {"username", username} }}
-            };
-            new_config << default_config;
+            std::fstream config_file{CONFIG_PATH,std::ios::out | std::ios::trunc};
+            if(config.find("network") != config.end())
+            {
+                auto network_cfg = config["network"].as_table();
+                if(network_cfg != nullptr)
+                {
+                    if(network_cfg->find("username") != network_cfg->end())
+                        *network_cfg->find("username")->second.as_string() = username;
+                    else
+                        network_cfg->emplace("username",username);
+                }
+                else
+                {
+                    config.erase("network");
+                    config.emplace("network",toml::table{ {"username", username} });
+                }
+            }
+            else
+                config.emplace("network",toml::table{ {"username", username} });
+            config_file << config;
             logging::log("MSG","Config file written to \"" HIGHLIGHT + args["config"].as<std::string>() + RESET "\"");
         }
 
@@ -142,7 +156,7 @@ int main(int argc, char* argv[])
         network::authentication::init();
         network::udp::init(config["network"]["port"].value_or(args["port"].as<uint16_t>()));
         network::connection::init(
-            config["network"]["username"].value_or(username),
+            username,
             connection_whitelist,
             config["network"]["connection"]["default_action"].value_or(std::string("prompt")));
         network::messages::init();

@@ -130,30 +130,42 @@ namespace terminal
                     std::unique_lock out_lock(logging::output_mutex);
                     prompt();
                 }
-                auto line = ui::getline();
-                if(line.size() > 0)
+                try
                 {
-                    bool run_command = false;
+                    auto line = ui::getline();
+                    if(line.size() > 0)
                     {
-                        std::unique_lock queue_lock(input_queue_mutex);
-                        if(not input_queue.empty())
+                        bool run_command = false;
                         {
-                            auto callback = input_queue.front();
-                            input_queue.pop();
-                            callback.second(line);
+                            std::unique_lock queue_lock(input_queue_mutex);
                             if(not input_queue.empty())
                             {
-                                auto prompt = input_queue.front().first;
-                                logging::log("PRM",prompt);
+                                auto callback = input_queue.front();
+                                input_queue.pop();
+                                callback.second(line);
+                                if(not input_queue.empty())
+                                {
+                                    auto prompt = input_queue.front().first;
+                                    logging::log("PRM",prompt);
+                                }
+                            }
+                            else
+                            {
+                                run_command = true;
                             }
                         }
-                        else
-                        {
-                            run_command = true;
-                        }
+                        if(run_command)
+                            last_ret = process_command(line);
                     }
-                    if(run_command)
-                        last_ret = process_command(line);
+                }catch(ui::KeyboardInterrupt&)
+                {
+                    std::unique_lock queue_lock(input_queue_mutex);
+                    while(not input_queue.empty())
+                    {
+                        input_queue.front().second("");
+                        input_queue.pop();
+                    }
+                    last_ret = process_command("exit");
                 }
             }
         }
