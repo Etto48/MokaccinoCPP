@@ -14,6 +14,7 @@ Mokaccino is a simple P2P application written in C++ capable of creating unstruc
 - [Boost library](https://www.boost.org/)
 - [PortAudio library](http://portaudio.com/)
 - [Opus library](https://www.opus-codec.org/)
+- [OpenSSL library](https://www.openssl.org/)
 
 ### Optional
 - [PDCurses (windows)](https://pdcurses.org/)
@@ -174,5 +175,6 @@ The audio data will be sent with the following format
 - [Opus](https://www.opus-codec.org/)
 - [Toml++](https://github.com/marzer/tomlplusplus)
 - [Base64](https://github.com/joedf/base64.c)
+- [OpenSSL library](https://www.openssl.org/)
 - [PDCurses](https://pdcurses.org/)
 - [NCurses](https://invisible-island.net/ncurses/)
