@@ -1,5 +1,7 @@
 # Mokaccino
 
+[![CodeQL](https://github.com/Etto48/MokaccinoCPP/actions/workflows/codeql.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/codeql.yml)
+
 [![Linux](https://github.com/Etto48/MokaccinoCPP/actions/workflows/linux-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/linux-cmake.yml)
 [![Windows](https://github.com/Etto48/MokaccinoCPP/actions/workflows/windows-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/windows-cmake.yml)
 [![MacOS](https://github.com/Etto48/MokaccinoCPP/actions/workflows/macos-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/macos-cmake.yml)
@@ -31,6 +33,8 @@ mkdir build
 cmake -B build
 cmake --build build [--config Release]
 ```
+
+For more information about the installation of the dependencies see [windows-cmake.yml](.github/workflows/windows-cmake.yml), [linux-cmake.yml](.github/workflows/linux-cmake.yml) and [macos-cmake.yml](.github/workflows/macos-cmake.yml)
 
 ## Configuration
 
