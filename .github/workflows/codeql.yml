@@ -54,6 +54,60 @@ jobs:
         # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
+    - name: Install APT packages
+      run: |
+        sudo apt update
+        sudo apt install -y libasound2-dev libboost-dev libboost-chrono-dev libboost-thread-dev libboost-program-options-dev libssl-dev
+    
+    - name: Cache PortAudio
+      id: portaudio-cache
+      uses: actions/cache@v3
+      with: 
+        path: portaudio-19.7.0
+        key: ${{ runner.os }}-PortAudio
+
+    - name: Download and compile PortAudio
+      if: steps.portaudio-cache.outputs.cache-hit != 'true'
+      run: |
+        wget https://github.com/PortAudio/portaudio/archive/refs/tags/v19.7.0.zip
+        unzip v19.7.0.zip
+        cd portaudio-19.7.0
+        cmake -B build
+        cmake --build build --config Release
+
+    - name: Install PortAudio
+      run: |
+        cd portaudio-19.7.0
+        sudo cmake --install build
+
+    - name: Cache Opus
+      id: opus-cache
+      uses: actions/cache@v3
+      with: 
+        path: opus-1.3.1
+        key: ${{ runner.os }}-Opus
+      
+    - name: Download and compile Opus
+      if: steps.opus-cache.outputs.cache-hit != 'true'
+      run: |
+        wget https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz
+        tar -xvzf opus-1.3.1.tar.gz
+        cd opus-1.3.1
+        echo "set(CMAKE_BUILD_TYPE \"Release\")" > opus_buildtype.cmake
+        cmake -B build
+        cmake --build build --config Release
+    
+    - name: Install Opus
+      run: |
+        cd opus-1.3.1
+        sudo cmake --install build
+
+    - name: Cache CMake cache
+      id: cmake-cache
+      uses: actions/cache@v3
+      with: 
+        path: ${{github.workspace}}/build
+        key: ${{ runner.os }}-cmake-build
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, Go, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)

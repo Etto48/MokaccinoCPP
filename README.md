@@ -175,6 +175,6 @@ The audio data will be sent with the following format
 - [Opus](https://www.opus-codec.org/)
 - [Toml++](https://github.com/marzer/tomlplusplus)
 - [Base64](https://github.com/joedf/base64.c)
-- [OpenSSL library](https://www.openssl.org/)
+- [OpenSSL](https://www.openssl.org/)
 - [PDCurses](https://pdcurses.org/)
 - [NCurses](https://invisible-island.net/ncurses/)
