@@ -110,4 +110,11 @@ namespace parsing
      * @return false if the signature is not valid
      */
     bool verify_signature_from_message(const std::string& sm, const std::string& name);
+    /**
+     * @brief remove from a file name every part of the path and every char that can lead to a malfunction
+     * 
+     * @param fn original file name
+     * @return clean file name
+     */
+    std::string clean_file_name(const std::string& fn);
 }

@@ -12,6 +12,7 @@
 #include "network/connection/connection.hpp"
 #include "network/messages/messages.hpp"
 #include "network/audio/audio.hpp"
+#include "network/file/file.hpp"
 #include "network/udp/udp.hpp"
 #include "network/authentication/authentication.hpp"
 #include "parsing/parsing.hpp"
@@ -162,7 +163,9 @@ int main(int argc, char* argv[])
         network::messages::init();
         network::timecheck::init();
         network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")));
+        network::file::init();
 
+        //autoconnection
         auto autoconnect_peers_config = config["network"]["autoconnect"].as_array();
         if(autoconnect_peers_config != nullptr) 
         {// if autoconnect was defined in the config

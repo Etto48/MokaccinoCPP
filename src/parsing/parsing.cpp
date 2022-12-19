@@ -3,6 +3,7 @@
 #include "../network/udp/udp.hpp"
 #include "curses_ansi_lookup.hpp"
 #include "../network/authentication/authentication.hpp"
+#include <algorithm>
 #ifndef MSG_SPLITTING_CHAR
     #define MSG_SPLITTING_CHAR ' '
 #endif
@@ -272,5 +273,19 @@ namespace parsing
                 m.pop_back();
         }
         return network::authentication::verify(m,signature,name);   
+    }
+    std::string clean_file_name(const std::string& fn)
+    {
+        auto ret = fn;
+        std::replace(ret.begin(),ret.end(),'/','_');
+        std::replace(ret.begin(),ret.end(),'\\','_');
+        std::replace(ret.begin(),ret.end(),':','_');
+        std::replace(ret.begin(),ret.end(),'*','_');
+        std::replace(ret.begin(),ret.end(),'~','_');
+        std::replace(ret.begin(),ret.end(),'`','_');
+        std::replace_if(ret.begin(),ret.end(),[](const char& c){
+            return not std::isprint(c);
+        },'_');
+        return ret;
     }
 }
