@@ -9,6 +9,7 @@
 #include "../../network/messages/messages.hpp"
 #include "../../network/connection/connection.hpp"
 #include "../../network/audio/audio.hpp"
+#include "../../network/file/file.hpp"
 #include "../../ui/ui.hpp"
 
 namespace terminal::commands
@@ -233,5 +234,30 @@ namespace terminal::commands
             return false;
         }
         return true;
+    }
+    bool send(const std::string& line, const std::vector<std::string>& args)
+    {// send <username> <path>
+        try
+        {
+            if(not network::file::init_file_upload(args[1],args[2]))
+            {
+                logging::log("ERR","You are already sending or receiving a file with the same hash");
+                return false;
+            }   
+            else
+            {
+                return true;
+            }
+        }
+        catch(network::file::FileNotFound&)
+        {
+            logging::log("ERR","Could not open file at \"" HIGHLIGHT + args[2] + RESET "\"");
+            return false;
+        }
+        catch(network::file::UserNotFound&)
+        {
+            logging::user_not_found_log(args[1]);
+            return false;
+        }
     }
 };

@@ -209,6 +209,12 @@ namespace terminal
             "Get a list of connected users or the address about a specific user",
             commands::user,
             2,3});
+        add_command(CommandFunction{
+            "send",
+            "<username> <file path>",
+            "Send a file to a user",
+            commands::send,
+            3,3}); 
         #ifndef NO_TERMINAL_UI
         add_command(CommandFunction{
             "scroll",
