@@ -7,13 +7,17 @@
 #define NONCE_NON_ENCODED_LENGTH 36
 
 #ifdef _WIN32
-#define MOKACCINO_ROOT (parsing::getenv("USERPROFILE")+"\\AppData\\Local\\Mokaccino\\")
+#define HOME_PATH parsing::getenv("USERPROFILE")
+#define MOKACCINO_ROOT (HOME_PATH+"\\AppData\\Local\\Mokaccino\\")
+#define DOWNLOAD_PATH (HOME_PATH+"\\Downloads\\")
 #define not !
 #define or ||
 #define and &&
 #else
 #define IsDebuggerPresent() false
-#define MOKACCINO_ROOT (parsing::getenv("HOME")+"/.config/Mokaccino/")
+#define HOME_PATH parsing::getenv("HOME")
+#define MOKACCINO_ROOT (HOME_PATH+"/.config/Mokaccino/")
+#define DOWNLOAD_PATH (HOME_PATH+"/Downloads/")
 #endif
 
 #define CONFIG_PATH (MOKACCINO_ROOT+"mokaccino.cfg")

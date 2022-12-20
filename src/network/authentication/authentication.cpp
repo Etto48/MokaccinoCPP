@@ -192,6 +192,6 @@ namespace network::authentication
         RAND_bytes(random_bytes.get(),NONCE_NON_ENCODED_LENGTH);
         std::unique_ptr<char> encoded_bytes{new char[b64e_size(NONCE_NON_ENCODED_LENGTH)+1]};
         b64_encode(random_bytes.get(),NONCE_NON_ENCODED_LENGTH,(unsigned char*)encoded_bytes.get());
-        return std::string(encoded_bytes.get());
+        return encoded_bytes.get();
     }
 }
