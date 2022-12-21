@@ -130,7 +130,7 @@ namespace network::file
         std::unique_lock lock(file_transfers_mutex);
         if(file_transfers.find(file_hash) == file_transfers.end())
             return false;
-        auto info = file_transfers[file_hash];
+        auto& info = file_transfers[file_hash];
         if(info.username != username)
             return false;
         if(info.direction != FileTransferDirection::download)
@@ -153,7 +153,7 @@ namespace network::file
         std::copy(chunk.get(),chunk.get()+data_size,info.data.begin()+sequence_number);
         info.received_chunks[chunk_number] = true;
         //check if there are chunks received out of order
-        for(size_t i = info.next_sequence_number/CHUNK_SIZE; info.received_chunks[i]; i++)
+        for(size_t i = info.next_sequence_number/CHUNK_SIZE; i<info.received_chunks.size() and info.received_chunks[i]; i++)
         {
             if(i == info.received_chunks.size()-1) // last chunk
                 info.next_sequence_number+=info.data.size()%CHUNK_SIZE;
@@ -181,6 +181,7 @@ namespace network::file
         std::unique_ptr<char> encoded_data{new char[b64e_size((unsigned int)packet_size)+1]};
         b64_encode(info.data.data()+sequence_number_to_send,(unsigned int)packet_size,(unsigned char*)encoded_data.get());
         udp::send(parsing::compose_message({"FILE",file_hash,std::to_string(sequence_number_to_send),encoded_data.get()}),endpoint);
+        //logging::log("DBG","Sent packet seqn:" HIGHLIGHT +std::to_string(sequence_number_to_send)+ RESET " to " HIGHLIGHT +info.username+ RESET);
         return packet_size;
     }
     bool handle_ack(const std::string& username, const boost::asio::ip::udp::endpoint& endpoint, const std::string& file_hash, size_t acked_number)
@@ -201,6 +202,13 @@ namespace network::file
         {
             info.accepted = true;
             logging::log("MSG","File transfer accepted from " HIGHLIGHT + info.username + RESET);
+            return true;
+        }
+        if(acked_number==info.data.size())
+        {//file completely received
+            logging::log("MSG","File successfully sent to " HIGHLIGHT + info.username + RESET);
+            file_transfers.erase(file_hash);
+            return true;
         }
 
         if(acked_number == info.last_acked_number)//duplicate ack, not the connection accepted ack
