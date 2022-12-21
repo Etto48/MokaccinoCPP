@@ -254,6 +254,7 @@ namespace network::file
                                 // so that we have the next window_difference == window_size*CHUNK_SIZE
                                 if(info.accepted)
                                 {
+                                    auto now = boost::posix_time::microsec_clock::local_time();
                                     if(window_difference < window_size*CHUNK_SIZE)
                                     {
                                         for(;window_difference < window_size*CHUNK_SIZE;window_difference = info.next_sequence_number - info.last_acked_number)
@@ -264,10 +265,10 @@ namespace network::file
                                             info.next_sequence_number += packet_size;
                                         }
                                     }
-                                    /*else
-                                    {//we have sent a whole window_size and not received a single ack
-                                        // we do nothing and wait for a duplicate ack
-                                    }*/
+                                    else if((now - info.last_ack).total_milliseconds() > ACK_EVERY*2)
+                                    {// is the other peer dead? try sending the last acked packet
+                                        _create_and_send_file_packet(info.last_acked_number,k,info,endpoint);
+                                    }
                                 }
                                 else
                                 {// the user did not accept/went offline
@@ -320,6 +321,7 @@ namespace network::file
                     handle_data(item.src,item.src_endpoint,args[1],sequence_number,args[3]);
                 }catch(std::exception&)
                 {}
+                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }
             // FILEACK <base64 file hash> <next sequence number to receive>
             else if(args[0] == "FILEACK" and args.size() == 3)
@@ -329,6 +331,7 @@ namespace network::file
                     handle_ack(item.src,item.src_endpoint,args[1],next_sequence_number);
                 }catch(std::exception&)
                 {}
+                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }
             // FILEINIT <base64 file hash> <total file size> <file name>
             else if(args[0] == "FILEINIT" and args.size() == 4)
@@ -350,12 +353,14 @@ namespace network::file
                     });
                 }catch(std::exception&)
                 {}
+                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }
             // FILESTOP <base64 file hash>
             else if(args[0] == "FILESTOP" and args.size() == 2)
             {
                 if(delete_file_transfer(item.src,args[1]))
                     logging::log("MSG","File transfer stopped from " HIGHLIGHT + item.src + RESET);
+                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }
             else 
             {

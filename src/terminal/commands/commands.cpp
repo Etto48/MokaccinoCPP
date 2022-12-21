@@ -248,7 +248,7 @@ namespace terminal::commands
             {
                 try
                 {
-                    if(not network::file::init_file_upload(args[1],args[2]))
+                    if(not network::file::init_file_upload(args[2],args[3]))
                     {
                         logging::log("ERR","You are already sending or receiving a file with the same hash");
                         return false;
@@ -260,12 +260,12 @@ namespace terminal::commands
                 }
                 catch(network::file::FileNotFound&)
                 {
-                    logging::log("ERR","Could not open file at \"" HIGHLIGHT + args[2] + RESET "\"");
+                    logging::log("ERR","Could not open file at \"" HIGHLIGHT + args[3] + RESET "\"");
                     return false;
                 }
                 catch(network::file::UserNotFound&)
                 {
-                    logging::user_not_found_log(args[1]);
+                    logging::user_not_found_log(args[2]);
                     return false;
                 }
             }
@@ -279,12 +279,16 @@ namespace terminal::commands
             else
             {
                 std::unique_lock lock(network::file::file_transfers_mutex);
+                unsigned int i = 0;
                 for(auto& [hash, info]: network::file::file_transfers)
                 {
                     
                     logging::log("MSG","- " HIGHLIGHT + info.file_name + RESET);
                     logging::log("MSG","    " + std::string(info.direction == network::file::FileTransferDirection::download? "DOWNLOAD":"UPLOAD"));
                     logging::log("MSG","    " + std::to_string(info.last_acked_number) + "/" + std::to_string(info.data.size()) + " " + std::to_string(float(info.last_acked_number)/info.data.size()*100)+"%");
+                    if(i!=network::file::file_transfers.size()-1)
+                        logging::log("MSG","");
+                    i++;
                 }
                 return true;
             }
