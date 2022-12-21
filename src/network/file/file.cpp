@@ -197,9 +197,13 @@ namespace network::file
             return false;
         if(acked_number > info.next_sequence_number)//acked a packet we did not send
             return false;
-        info.accepted = true;
+        if(acked_number==0 and not info.accepted)
+        {
+            info.accepted = true;
+            logging::log("MSG","File transfer accepted from " HIGHLIGHT + info.username + RESET);
+        }
 
-        if(acked_number == info.last_acked_number)//duplicate ack
+        if(acked_number == info.last_acked_number)//duplicate ack, not the connection accepted ack
         {// we need to resend the double acked packet because it was lost
             _create_and_send_file_packet(info.last_acked_number,file_hash,info,endpoint);
             return true;
@@ -246,6 +250,7 @@ namespace network::file
                         {
                             auto endpoint = udp::connection_map[info.username].endpoint;   
                             auto window_difference = info.next_sequence_number - info.last_acked_number;
+                            auto max_window_size = std::min(window_size*CHUNK_SIZE, info.data.size() - info.last_acked_number);
                             switch (info.direction)
                             {
                             case FileTransferDirection::upload:
@@ -285,7 +290,7 @@ namespace network::file
                                 {
                                     auto now = boost::posix_time::microsec_clock::local_time();
                                     // we have "window_difference" packets that we didn't ack or the last ack was very long ago
-                                    if(window_difference != 0 or (now-info.last_ack).total_milliseconds() > ACK_EVERY)
+                                    if(window_difference >= max_window_size or (now-info.last_ack).total_milliseconds() > ACK_EVERY)
                                     { // we ack everything we received
                                         info.last_acked_number = info.next_sequence_number;
                                         udp::send(parsing::compose_message({"FILEACK",k,std::to_string(info.last_acked_number)}),endpoint);
@@ -297,7 +302,6 @@ namespace network::file
                         catch(DataMap::NotFound&)
                         { // user disconnected during file transfer
                             logging::log("ERR","File transfer with " HIGHLIGHT + info.username + RESET " stopped because the user disconnected");
-                            std::unique_lock lock(file_transfers_mutex);
                             file_transfers.erase(k);
                         }
                     }
@@ -321,7 +325,7 @@ namespace network::file
                     handle_data(item.src,item.src_endpoint,args[1],sequence_number,args[3]);
                 }catch(std::exception&)
                 {}
-                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
+                //logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }
             // FILEACK <base64 file hash> <next sequence number to receive>
             else if(args[0] == "FILEACK" and args.size() == 3)
@@ -331,7 +335,7 @@ namespace network::file
                     handle_ack(item.src,item.src_endpoint,args[1],next_sequence_number);
                 }catch(std::exception&)
                 {}
-                logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
+                //logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }
             // FILEINIT <base64 file hash> <total file size> <file name>
             else if(args[0] == "FILEINIT" and args.size() == 4)
