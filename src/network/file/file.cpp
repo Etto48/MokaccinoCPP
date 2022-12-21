@@ -160,7 +160,7 @@ namespace network::file
             else // any other chunk
                 info.next_sequence_number+=CHUNK_SIZE;
         }
-        // check if we haven't acked for window_size chunks or we have received the entire file or we have a duplicate file packet
+        // check if we haven't acked for window_size chunks or we have received the entire file
         if(info.next_sequence_number == info.data.size() or info.last_acked_number+(window_size*CHUNK_SIZE) <= info.next_sequence_number)
         { // in this case we need to send an ACK asap
             udp::send(parsing::compose_message({"FILEACK",file_hash,std::to_string(info.next_sequence_number)}),endpoint);

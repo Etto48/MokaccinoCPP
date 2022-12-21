@@ -172,6 +172,40 @@ The audio data will be sent with the following format
 
 `AUDIO <data encoded base64>`
 
+### File transfers
+
+Keep in mind that both `<file hash>` and `<data>` are encoded in Base64
+
+You can send a file to a user sending
+
+A to B: `FILEINIT <file hash> <file size> <file name>`
+
+If B accepts it can send an ACK with sequence number 0
+
+B to A: `FILEACK <file hash> 0`
+
+A can send data to B with
+
+A to B: `FILE <file hash> <sequence number> <data>`
+
+`<sequence number>` is the index of the first byte of `<data>`
+
+B can tell to A that it received the data until the byte `<n>` with
+
+B to A: `FILEACK <file hash> <n+1>`
+
+If `<n+1>` equals the size of the file you can consider the transaction finished
+
+#### Notes about file transfers
+
+`<data>` must always correspond to "CHUNK_SIZE" bytes or less (only if data is the last chunk, and in this case it must be exactly the size of the last chunk) if this condition is not met the packet will be discarded
+
+You should send an ACK every time you have received "window_size" sequential chunks without ACKing them
+
+You should send an ACK relative to the the last sequential chunk you received every time you receive a duplicate file packet, this can suggest that an ACK was lost
+
+If you receive a duplicate ACK you should send the next chunk relative to the ACK
+
 ## Libraries used
 
 - [Boost](https://www.boost.org/)
