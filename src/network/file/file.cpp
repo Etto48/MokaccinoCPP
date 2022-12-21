@@ -17,7 +17,7 @@
 namespace network::file
 {
     MessageQueue file_queue;
-    constexpr size_t CHUNK_SIZE = 512;
+    constexpr size_t CHUNK_SIZE = 1024;
     constexpr unsigned int ACK_EVERY = 100;//milliseconds if no new packets received
     constexpr unsigned int ACCEPT_TIMEOUT = 10; // seconds
     size_t window_size = 10; // CHUNKS
@@ -140,6 +140,7 @@ namespace network::file
         std::unique_ptr<unsigned char> chunk{new unsigned char[b64d_size((unsigned int)data.length())]};
         auto data_size = b64_decode((unsigned char*)data.c_str(),(unsigned int)data.length(),chunk.get());
         auto chunk_number = sequence_number/CHUNK_SIZE;
+        
         if(info.received_chunks[chunk_number])
         {// already received
             udp::send(parsing::compose_message({"FILEACK",file_hash,std::to_string(info.next_sequence_number)}),endpoint);
@@ -148,7 +149,7 @@ namespace network::file
             return true;
         }
         //not of CHUNK_SIZE or not last chunk and missing size
-        if(data_size != CHUNK_SIZE and (chunk_number != info.received_chunks.size() - 1 or data_size != info.data.size()%CHUNK_SIZE))
+        if(data_size != CHUNK_SIZE and not (chunk_number == info.received_chunks.size() - 1 and data_size == info.data.size()%CHUNK_SIZE))
             return false;
         std::copy(chunk.get(),chunk.get()+data_size,info.data.begin()+sequence_number);
         info.received_chunks[chunk_number] = true;
@@ -156,7 +157,7 @@ namespace network::file
         for(size_t i = info.next_sequence_number/CHUNK_SIZE; i<info.received_chunks.size() and info.received_chunks[i]; i++)
         {
             if(i == info.received_chunks.size()-1) // last chunk
-                info.next_sequence_number+=info.data.size()%CHUNK_SIZE;
+                info.next_sequence_number=info.data.size();
             else // any other chunk
                 info.next_sequence_number+=CHUNK_SIZE;
         }
