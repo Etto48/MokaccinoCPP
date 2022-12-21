@@ -1,8 +1,42 @@
 #pragma once
 #include <exception>
 #include <string>
+#include <vector>
+#include <mutex>
+#include <map>
+#include <boost/date_time/posix_time/posix_time.hpp>
 namespace network::file
 {
+    enum class FileTransferDirection
+    {
+        upload,
+        download
+    };
+    struct FileTransferInfo
+    {
+        std::string file_name;
+        std::string username;
+        bool accepted;
+        std::vector<unsigned char> data;
+        std::vector<bool> received_chunks;
+        // first byte not received (only for download) or first byte yet to send (only for upload)
+        size_t next_sequence_number = 0;
+        // last ack sent/received (up/down)
+        size_t last_acked_number = 0;
+        FileTransferDirection direction;
+        boost::posix_time::ptime last_ack;
+        static size_t chunk_count(size_t data_size);
+        static FileTransferInfo prepare_for_upload(
+            const std::string& file_name,
+            const std::string& username,
+            const std::vector<unsigned char>& data);
+        static FileTransferInfo prepare_for_download(
+            const std::string& file_name,
+            const std::string& username, 
+            size_t file_size);
+    };
+    extern std::mutex file_transfers_mutex;
+    extern std::map<std::string,FileTransferInfo> file_transfers;
     /**
      * @brief get how many files are being transferred
      * 

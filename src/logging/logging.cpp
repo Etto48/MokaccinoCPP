@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
-#include "../terminal/prompt.hpp"
+#include "../terminal/terminal.hpp"
 #include "../multithreading/multithreading.hpp"
 #include "../parsing/parsing.hpp"
 #include "../ui/ui.hpp"

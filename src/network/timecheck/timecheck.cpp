@@ -15,7 +15,7 @@ namespace network::timecheck
     #define PING_EVERY 1 // s
     #define RUN_EVERY 500 // ms
     #define CONFIDENCE 3 // times the avg latency to determine timeout
-    #define MAX_STRIKES 3 // subsequent packets lost for disconnect
+    #define MAX_STRIKES 5 // subsequent packets lost for disconnect
     #define REQUEST_TIMEOUT 10 // s 
     #define CONNECTION_TIMEOUT 10 // s
     boost::random::mt19937 rng;

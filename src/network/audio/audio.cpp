@@ -242,6 +242,7 @@ namespace network::audio
         if(audio_buddy.name.length() != 0)
         {
             network::udp::send(parsing::compose_message({"AUDIOSTOP"}),audio_buddy.endpoint);\
+            logging::log("MSG","Voice call with " HIGHLIGHT + audio_buddy.name + RESET " ended");
             comms_stop();
         }
     }
@@ -323,6 +324,10 @@ namespace network::audio
                 logging::log("MSG","Voice call accepted from " HIGHLIGHT + item.src + RESET);
             }else if(args.size() == 1 and args[0] == "AUDIOSTOP" and (audio_buddy.name == item.src or pending_name == item.src))
             {
+                if(audio_buddy.name.length()!=0)
+                    logging::log("MSG","Voice call with " HIGHLIGHT +audio_buddy.name+ RESET " was stopped from the other peer");
+                else
+                    logging::log("MSG","Voice call refused from " HIGHLIGHT +pending_name+ RESET);
                 comms_stop();
                 logging::log("DBG","Handled " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src + RESET);
             }else if(args.size() == 2 and args[0] == "AUDIO" and audio_buddy.name == item.src)

@@ -13,13 +13,37 @@
 #include "../logging/logging.hpp"
 #include "../ui/ui.hpp"
 #include "commands/commands.hpp"
-#include "prompt.hpp"
 namespace terminal
 {
     std::mutex command_function_mutex;
     std::map<std::string,CommandFunction> command_function_map;
-    std::mutex input_queue_mutex;
+    std::recursive_mutex input_queue_mutex;
     std::queue<std::pair<std::string,std::function<void(const std::string&)>>> input_queue;
+    bool last_ret = true;
+    void prompt()
+    {
+        #ifndef _TEST
+        #ifndef NO_TERMINAL_UI
+        std::string prompt_tex = "Command:";
+        {
+            std::unique_lock lock(input_queue_mutex);
+            
+            if(not input_queue.empty())
+                prompt_tex = input_queue.front().first;
+        }
+        ui::prompt(prompt_tex);
+        #else
+        #ifndef NO_ANSI_ESCAPE
+        std::cout << "\r" CLEAR_LINE;
+        if(last_ret)
+            std::cout << CORRECT "O" RESET "> ";
+        else
+            std::cout << WRONG "X" RESET "> ";
+        std::cout.flush();
+        #endif
+        #endif
+        #endif
+    }
     void add_command(const CommandFunction& command_info)
     {
         if(command_info.name != "exit" and command_info.name != "help" and command_info.function != nullptr)
@@ -210,11 +234,11 @@ namespace terminal
             commands::user,
             2,3});
         add_command(CommandFunction{
-            "send",
-            "<username> <file path>",
-            "Send a file to a user",
-            commands::send,
-            3,3}); 
+            "file",
+            "(send <username> <file path>)|(list)",
+            "Send a file to a user or show the status of every ongoing file transfer",
+            commands::file,
+            2,4}); 
         #ifndef NO_TERMINAL_UI
         add_command(CommandFunction{
             "scroll",

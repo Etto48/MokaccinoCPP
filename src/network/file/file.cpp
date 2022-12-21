@@ -2,15 +2,13 @@
 #include "../../defines.hpp"
 #include "../../ansi_escape.hpp"
 #include <fstream>
-#include <vector>
-#include <mutex>
 #include <filesystem>
-#include <map>
 #include <algorithm>
 #include <openssl/sha.h>
 #include <boost/thread.hpp>
 #include "../MessageQueue/MessageQueue.hpp"
 #include "../../logging/logging.hpp"
+#include "../udp/DataMap/DataMap.hpp"
 #include "../udp/udp.hpp"
 #include "../../multithreading/multithreading.hpp"
 #include "../../parsing/parsing.hpp"
@@ -21,64 +19,49 @@ namespace network::file
     MessageQueue file_queue;
     constexpr size_t CHUNK_SIZE = 512;
     constexpr unsigned int ACK_EVERY = 100;//milliseconds if no new packets received
+    constexpr unsigned int ACCEPT_TIMEOUT = 10; // seconds
     size_t window_size = 10; // CHUNKS
-    enum class FileTransferDirection
+    size_t FileTransferInfo::chunk_count(size_t data_size)
     {
-        upload,
-        download
-    };
-    struct FileTransferInfo
-    {
-        std::string file_name;
-        std::string username;
-        bool accepted;
-        std::vector<unsigned char> data;
-        std::vector<bool> received_chunks;
-        // first byte not received (only for download) or first byte yet to send (only for upload)
-        size_t next_sequence_number = 0;
-        // last ack sent/received (up/down)
-        size_t last_acked_number = 0;
-        FileTransferDirection direction;
-        boost::posix_time::ptime last_ack;
-        static size_t chunk_count(size_t data_size)
-        {
-            size_t ret = data_size/CHUNK_SIZE;
-            if(data_size%CHUNK_SIZE != 0)
-                ret++;
-            return ret;
-        }
-        static FileTransferInfo prepare_for_upload(
+        size_t ret = data_size/CHUNK_SIZE;
+        if(data_size%CHUNK_SIZE != 0)
+            ret++;
+        return ret;
+    }
+    FileTransferInfo FileTransferInfo::prepare_for_upload(
             const std::string& file_name,
             const std::string& username,
             const std::vector<unsigned char>& data)
-        {
-            FileTransferInfo ret;
-            ret.file_name = file_name;
-            ret.username = username;
-            ret.accepted = false;
-            ret.data = data;
-            ret.received_chunks = std::vector<bool>(chunk_count(data.size()),false);
-            ret.next_sequence_number = 0;
-            ret.last_acked_number = 0;
-            ret.direction = FileTransferDirection::upload;
-            ret.last_ack = boost::posix_time::microsec_clock::local_time();
-            return ret;
-        }
-        static FileTransferInfo prepare_for_download(const std::string& file_name, const std::string& username, size_t file_size)
-        {
-            FileTransferInfo ret;
-            ret.file_name = file_name;
-            ret.username = username;
-            ret.accepted = true;
-            ret.data = std::vector<unsigned char>(file_size);
-            ret.received_chunks = std::vector<bool>(chunk_count(file_size),false);
-            ret.next_sequence_number = 0;
-            ret.last_acked_number = 0;
-            ret.direction = FileTransferDirection::download;
-            ret.last_ack = boost::posix_time::microsec_clock::local_time();
-            return ret;
-        }
-    };
+    {
+        FileTransferInfo ret;
+        ret.file_name = file_name;
+        ret.username = username;
+        ret.accepted = false;
+        ret.data = data;
+        ret.received_chunks = std::vector<bool>(chunk_count(data.size()),false);
+        ret.next_sequence_number = 0;
+        ret.last_acked_number = 0;
+        ret.direction = FileTransferDirection::upload;
+        ret.last_ack = boost::posix_time::microsec_clock::local_time();
+        return ret;
+    }
+    FileTransferInfo FileTransferInfo::prepare_for_download(
+        const std::string& file_name, 
+        const std::string& username, 
+        size_t file_size)
+    {
+        FileTransferInfo ret;
+        ret.file_name = file_name;
+        ret.username = username;
+        ret.accepted = true;
+        ret.data = std::vector<unsigned char>(file_size);
+        ret.received_chunks = std::vector<bool>(chunk_count(file_size),false);
+        ret.next_sequence_number = 0;
+        ret.last_acked_number = 0;
+        ret.direction = FileTransferDirection::download;
+        ret.last_ack = boost::posix_time::microsec_clock::local_time();
+        return ret;
+    }
     std::mutex file_transfers_mutex;
     std::map<std::string,FileTransferInfo> file_transfers;
     std::string hash(const std::vector<unsigned char>& file_content)
@@ -259,49 +242,62 @@ namespace network::file
                     if(file_transfers.find(k) != file_transfers.end())
                     { // key still present
                         auto& info = file_transfers[k];
-                        auto endpoint = udp::connection_map[info.username].endpoint;
-                        auto window_difference = info.next_sequence_number - info.last_acked_number;
-                        switch (info.direction)
+                        try
                         {
-                        case FileTransferDirection::upload:
-                            // we have "window_difference" packets that we don't know if they were received or not
-                            // we send (window_size*CHUNK_SIZE)-window_difference bytes starting from next_sequence_number
-                            // so that we have the next window_difference == window_size*CHUNK_SIZE
-                            if(info.accepted)
+                            auto endpoint = udp::connection_map[info.username].endpoint;   
+                            auto window_difference = info.next_sequence_number - info.last_acked_number;
+                            switch (info.direction)
                             {
-                                if(window_difference < window_size*CHUNK_SIZE)
+                            case FileTransferDirection::upload:
+                                // we have "window_difference" packets that we don't know if they were received or not
+                                // we send (window_size*CHUNK_SIZE)-window_difference bytes starting from next_sequence_number
+                                // so that we have the next window_difference == window_size*CHUNK_SIZE
+                                if(info.accepted)
                                 {
-                                    for(;window_difference < window_size*CHUNK_SIZE;window_difference = info.next_sequence_number - info.last_acked_number)
+                                    if(window_difference < window_size*CHUNK_SIZE)
                                     {
-                                        auto packet_size = _create_and_send_file_packet(info.next_sequence_number,k,info,endpoint);
-                                        if(packet_size == 0)
-                                            break;//we sent the whole file
-                                        info.next_sequence_number += packet_size;
+                                        for(;window_difference < window_size*CHUNK_SIZE;window_difference = info.next_sequence_number - info.last_acked_number)
+                                        {
+                                            auto packet_size = _create_and_send_file_packet(info.next_sequence_number,k,info,endpoint);
+                                            if(packet_size == 0)
+                                                break;//we sent the whole file
+                                            info.next_sequence_number += packet_size;
+                                        }
+                                    }
+                                    /*else
+                                    {//we have sent a whole window_size and not received a single ack
+                                        // we do nothing and wait for a duplicate ack
+                                    }*/
+                                }
+                                else
+                                {// the user did not accept/went offline
+                                    auto now = boost::posix_time::microsec_clock::local_time();
+                                    if((now-info.last_ack).total_seconds() > ACCEPT_TIMEOUT)
+                                    {
+                                        udp::send(parsing::compose_message({"FILESTOP",k}),info.username);
+                                        logging::log("MSG","Request to send a file to " HIGHLIGHT +info.username+ RESET " timed out");
+                                        file_transfers.erase(k);
                                     }
                                 }
-                                /*else
-                                {//we have sent a whole window_size and not received a single ack
-                                    // we do nothing and wait for a duplicate ack
-                                }*/
-                            }
-                            else
-                            {// the user did not accept/went offline
-                                udp::send(parsing::compose_message({"FILESTOP",k}),info.username);
-                                logging::log("MSG","Request to send a file to " HIGHLIGHT +info.username+ RESET " timed out");
-                                file_transfers.erase(k);
-                            }
-                            break;
-                        case FileTransferDirection::download:
-                            {
-                                auto now = boost::posix_time::microsec_clock::local_time();
-                                // we have "window_difference" packets that we didn't ack or the last ack was very long ago
-                                if(window_difference != 0 or (now-info.last_ack).total_milliseconds() > ACK_EVERY)
-                                { // we ack everything we received
-                                    info.last_acked_number = info.next_sequence_number;
-                                    udp::send(parsing::compose_message({"FILEACK",k,std::to_string(info.last_acked_number)}),endpoint);
+                                break;
+                            case FileTransferDirection::download:
+                                {
+                                    auto now = boost::posix_time::microsec_clock::local_time();
+                                    // we have "window_difference" packets that we didn't ack or the last ack was very long ago
+                                    if(window_difference != 0 or (now-info.last_ack).total_milliseconds() > ACK_EVERY)
+                                    { // we ack everything we received
+                                        info.last_acked_number = info.next_sequence_number;
+                                        udp::send(parsing::compose_message({"FILEACK",k,std::to_string(info.last_acked_number)}),endpoint);
+                                    }
                                 }
+                                break;
                             }
-                            break;
+                        }
+                        catch(DataMap::NotFound&)
+                        { // user disconnected during file transfer
+                            logging::log("ERR","File transfer with " HIGHLIGHT + info.username + RESET " stopped because the user disconnected");
+                            std::unique_lock lock(file_transfers_mutex);
+                            file_transfers.erase(k);
                         }
                     }
                 }

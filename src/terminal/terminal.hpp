@@ -4,6 +4,12 @@
 #include <functional>
 namespace terminal
 {
+    extern bool last_ret;
+    /**
+     * @brief print the prompt on the screen
+     * 
+     */
+    void prompt();
     /**
      * @brief Used to specify the function relative to a command in the terminal
      * 

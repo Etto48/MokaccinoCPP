@@ -235,28 +235,62 @@ namespace terminal::commands
         }
         return true;
     }
-    bool send(const std::string& line, const std::vector<std::string>& args)
-    {// send <username> <path>
-        try
+    bool file(const std::string& line, const std::vector<std::string>& args)
+    {
+        if(args[1] == "send")
         {
-            if(not network::file::init_file_upload(args[1],args[2]))
+            if(args.size() != 4)
             {
-                logging::log("ERR","You are already sending or receiving a file with the same hash");
+                logging::log("ERR","You must provide the user and the file to send, use \"help file\" for more info");
                 return false;
-            }   
+            }
             else
             {
+                try
+                {
+                    if(not network::file::init_file_upload(args[1],args[2]))
+                    {
+                        logging::log("ERR","You are already sending or receiving a file with the same hash");
+                        return false;
+                    }   
+                    else
+                    {
+                        return true;
+                    }
+                }
+                catch(network::file::FileNotFound&)
+                {
+                    logging::log("ERR","Could not open file at \"" HIGHLIGHT + args[2] + RESET "\"");
+                    return false;
+                }
+                catch(network::file::UserNotFound&)
+                {
+                    logging::user_not_found_log(args[1]);
+                    return false;
+                }
+            }
+        }else if(args[1] == "list")
+        {
+            if(args.size() != 2)
+            {
+                logging::log("ERR","No more arguments needed, use \"help file\" for more info");
+                return false;
+            }
+            else
+            {
+                std::unique_lock lock(network::file::file_transfers_mutex);
+                for(auto& [hash, info]: network::file::file_transfers)
+                {
+                    
+                    logging::log("MSG","- " HIGHLIGHT + info.file_name + RESET);
+                    logging::log("MSG","    " + std::string(info.direction == network::file::FileTransferDirection::download? "DOWNLOAD":"UPLOAD"));
+                    logging::log("MSG","    " + std::to_string(info.last_acked_number) + "/" + std::to_string(info.data.size()) + " " + std::to_string(float(info.last_acked_number)/info.data.size()*100)+"%");
+                }
                 return true;
             }
         }
-        catch(network::file::FileNotFound&)
-        {
-            logging::log("ERR","Could not open file at \"" HIGHLIGHT + args[2] + RESET "\"");
-            return false;
-        }
-        catch(network::file::UserNotFound&)
-        {
-            logging::user_not_found_log(args[1]);
+        else{
+            logging::log("ERR","The second argument must be send or list, use \"help file\" for more info");
             return false;
         }
     }
