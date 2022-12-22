@@ -85,11 +85,11 @@ execute_process(COMMAND git describe --tags
     OUTPUT_VARIABLE GIT_TAG_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-if(${GIT_TAG_VERSION} STREQUAL "")
-    message(WARNING "Error finding git tag, defaulting to version v1.0.0")
-else()
+if(GIT_TAG_VERSION)
     message(STATUS "Building with git tag ${GIT_TAG_VERSION}")
     add_compile_definitions(BUILD_TAG_VERSION=\"${GIT_TAG_VERSION}\")
+else()
+    message(WARNING "Error finding git tag, defaulting to version v1.0.0")
 endif()
 
 
