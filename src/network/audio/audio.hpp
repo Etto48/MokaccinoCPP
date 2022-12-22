@@ -17,11 +17,15 @@ namespace network::audio
      * @brief start a voice call with a connected user if no other call is happening
      * 
      * @param name the user you want to call
+     * @return true if everything went right
+     * @return false if user was not found or already in a call
      */
-    void start_call(const std::string& name);
+    bool start_call(const std::string& name);
     /**
      * @brief stop a voice call if there was one
      * 
+     * @return true if you was connected to someone
+     * @return false if you was not connected to anyone
      */
-    void stop_call();
+    bool stop_call();
 }

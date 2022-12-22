@@ -89,9 +89,7 @@ namespace terminal::commands
         {
             if(args.size() == 3)
             {
-                //TODO: check if all went right, user found and not already in a call
-                network::audio::start_call(args[2]);
-                return true;
+                return network::audio::start_call(args[2]);
             }else
             {
                 logging::log("ERR","No username provided, use \"help voice\" for more info");
@@ -102,9 +100,7 @@ namespace terminal::commands
         {
             if(args.size() == 2)
             {
-                //TODO: check if all went right, must be already in a call to do this
-                network::audio::stop_call();
-                return true;
+                return network::audio::stop_call();
             }else
             {
                 logging::log("ERR","Too many arguments, use \"help voice\" for more info");

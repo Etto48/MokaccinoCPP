@@ -364,25 +364,56 @@ namespace network::audio
         multithreading::add_service("audio",audio);
         multithreading::add_service("audio_sender",audio_sender);
     }
-    void start_call(const std::string& name)
+    bool start_call(const std::string& name)
     {
         std::unique_lock lock(name_mutex);
-        if(DEBUG and name == "loopback")
+        if(audio_buddy.name.length() == 0)
         {
-            audio_buddy = {"loopback",network::udp::connection_map["loopback"].endpoint};
-            comms_init();
-        }
-        else if(audio_buddy.name.length() == 0)
+            if(DEBUG and name == "loopback")
+            {   try
+                {
+                    audio_buddy = {"loopback",udp::connection_map["loopback"].endpoint};
+                    comms_init();
+                    return true;
+                }catch(network::DataMap::NotFound&)
+                {
+                    logging::log("ERR","User " HIGHLIGHT "loopback" RESET " was not found");
+                    return false;
+                }
+            }
+            else
+            {
+                try
+                {
+                    auto endpoint = udp::connection_map[name].endpoint;
+                    pending_name = name;
+                    network::udp::send(parsing::compose_message({"AUDIOSTART"}),endpoint);
+                    return true;
+                }catch(network::DataMap::NotFound&)
+                {
+                    logging::user_not_found_log(name);
+                    return false;
+                }
+            }
+        }else
         {
-            pending_name = name;
-            network::udp::send(parsing::compose_message({"AUDIOSTART"}),name);
+            logging::log("ERR","You are already in a voice call with " HIGHLIGHT +audio_buddy.name+ RESET);
+            return false;
         }
-        
     }
 
-    void stop_call()
+    bool stop_call()
     {
         std::unique_lock lock(name_mutex);
-        _stop_call();
+        if(audio_buddy.name.length() != 0)
+        {
+            _stop_call();
+            return true;
+        }
+        else
+        {
+            logging::log("ERR","You are not in a voice call");
+            return false;
+        }
     }
 }
