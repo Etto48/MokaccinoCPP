@@ -125,7 +125,9 @@ namespace network::connection
                 {
                     try{
                         auto key = authentication::known_users.get_key(args[1]);
-                        udp::send(parsing::compose_message({"KEY",args[1],key}),item.src_endpoint);
+                        auto m = parsing::compose_message({"KEY",args[1],key});
+                        parsing::sign_and_append(m);
+                        udp::send(m,item.src_endpoint);
                     }catch(authentication::KnownUsers::KeyNotFound&)
                     {}
                     if(not udp::connection_map.check_user(args[1]))
@@ -142,9 +144,16 @@ namespace network::connection
                             target.endpoint);
                     }
                 }
-                else if(args[0] == "KEY" and args.size() == 3 and udp::connection_map.server() == item.src_endpoint)
+                else if(args[0] == "KEY" and args.size() == 4 and udp::connection_map.server() == item.src_endpoint)
                 {
-                    authentication::known_users.add_key(args[1],args[2]);
+                    if(parsing::verify_signature_from_message(item.msg,item.src))
+                        authentication::known_users.add_key(args[1],args[2]);
+                    else
+                    {
+                        logging::log("ERR","Certificate sent from " HIGHLIGHT +item.src+ RESET " for the user " HIGHLIGHT + args[1] + RESET " was not valid, if you want to retry the connection (at your own risk) you can use the command \"key delete " HIGHLIGHT +parsing::compose_message({args[1]})+ RESET "\" and then retry to connect");
+                        //we disable the connection with the user because there is a risk of MiM attack
+                        authentication::known_users.replace_key(args[1],"");
+                    }
                 }
                 //REQUESTED <from> <at>
                 else if(args[0] == "REQUESTED" and args.size() == 4 and not udp::connection_map.check_user(args[1]) and udp::connection_map.server() == item.src_endpoint)

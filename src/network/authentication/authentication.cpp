@@ -159,6 +159,8 @@ namespace network::authentication
     {
         try{
             auto key_str = known_users.get_key(username);
+            if(key_str.length() == 0)//the user was blacklisted
+                return false;
             std::unique_ptr<RSA,decltype(&::RSA_free)> pubkey {string_to_pubkey(key_str),RSA_free};
             std::unique_ptr<unsigned char> hashed_data{new unsigned char[SHA256_DIGEST_LENGTH]};
             SHA256((unsigned char*)data.c_str(),data.length(),hashed_data.get());

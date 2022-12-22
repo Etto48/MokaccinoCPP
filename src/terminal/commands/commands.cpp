@@ -9,6 +9,7 @@
 #include "../../network/messages/messages.hpp"
 #include "../../network/connection/connection.hpp"
 #include "../../network/audio/audio.hpp"
+#include "../../network/authentication/authentication.hpp"
 #include "../../network/file/file.hpp"
 #include "../../ui/ui.hpp"
 
@@ -296,4 +297,107 @@ namespace terminal::commands
             return false;
         }
     }
-};
+    bool key(const std::string& line, const std::vector<std::string>& args)
+    {
+        if(args[1] == "list")
+        {
+            if(args.size() != 2)
+            {
+                logging::log("ERR","No more arguments needed, use \"help key\" for more info");
+                return false;
+            }
+            else
+            {
+                auto keys = network::authentication::known_users.get_all();
+                for(auto& k: keys)
+                    logging::log("MSG","- " HIGHLIGHT +k+ RESET);
+                return true;
+            }
+        }else if(args[1] == "show")
+        {
+            if(args.size() == 2)
+            {
+                logging::log("ERR","You must provide the user to get from the list of known users, use \"help key\" for more info");
+                return false;
+            }
+            else if(args.size() == 4)
+            {
+                logging::log("ERR","No more arguments needed, use \"help key\" for more info");
+                return false;
+            }
+            else
+            {
+                try
+                {
+                    auto key = network::authentication::known_users.get_key(args[2]);
+                    if(key.length() == 0)
+                        logging::log("MSG","User " HIGHLIGHT + args[2] + RESET " is " ERR_TAG "blacklisted for a risk of MiM attack" RESET);
+                    else
+                        logging::log("MSG","Key: " HIGHLIGHT + key + RESET);
+                    return true;
+                }
+                catch(network::authentication::KnownUsers::KeyNotFound&)
+                {
+                    logging::log("ERR","User " HIGHLIGHT +args[2]+ RESET " is not in the list of known users, use \"key list\" to get a list of known users");
+                    return false;
+                }
+            }
+        }else if(args[1] == "delete")
+        {
+            if(args.size() == 2)
+            {
+                logging::log("ERR","You must provide the user to remove from the list of known users, use \"help key\" for more info");
+                return false;
+            }
+            else if(args.size() == 4)
+            {
+                logging::log("ERR","No more arguments needed, use \"help key\" for more info");
+                return false;
+            }
+            else
+            {
+                if(network::authentication::known_users.delete_key(args[2]))
+                {
+                    logging::log("MSG","Key associated with user " HIGHLIGHT +args[2]+ RESET " was successfully removed");
+                    return true;
+                }
+                else
+                {
+                    logging::log("ERR","User " HIGHLIGHT +args[2]+ RESET " is not in the list of known users, use \"key list\" to get a list of known users");
+                    return false;
+                }
+            }
+        }
+        else if(args[1] == "add")
+        {
+            if(args.size() != 4)
+            {
+                logging::log("ERR","You must provide the user to add to the list of known users and the key to associate to it, use \"help key\" for more info");
+                return false;
+            }
+            else
+            {
+                if(args[3].find(':') == args[3].npos)
+                {
+                    logging::log("ERR","The key must be in the format <b64_encoded n>:<b64_encoded e>");
+                    return false;
+                }
+                else if(network::authentication::known_users.add_key(args[2],args[3]))
+                {
+                    logging::log("MSG","Key successfully associated with user " HIGHLIGHT + args[2] + RESET);
+                    return true;
+                }
+                else
+                {
+                    logging::log("ERR","User " HIGHLIGHT +args[2]+ RESET " already has a key associated to it, if you want to change it you must first delete it with \"key delete " HIGHLIGHT +parsing::compose_message({args[2]})+ RESET "\"");
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            logging::log("ERR","The second argument must be add, delete, show or list, use \"help key\" for more info");
+            return false;
+        }
+    }
+}

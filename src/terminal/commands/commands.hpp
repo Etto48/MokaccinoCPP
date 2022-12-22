@@ -12,4 +12,5 @@ namespace terminal::commands
     bool user(const std::string& line, const std::vector<std::string>& args);
     bool scroll(const std::string& line, const std::vector<std::string>& args);
     bool file(const std::string& line, const std::vector<std::string>& args);
-};
+    bool key(const std::string& line, const std::vector<std::string>& args);
+}

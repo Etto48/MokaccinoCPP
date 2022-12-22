@@ -245,6 +245,12 @@ namespace terminal
             "Send a file to a user or show the status of every ongoing file transfer",
             commands::file,
             2,4}); 
+        add_command(CommandFunction{
+            "key",
+            "(add <username> <public key>)|(delete <username>)|(show <username>)|(list)",
+            "Add, remove or show one or a list of the public keys stored associated with every known user, if you add a new key the format should be <b64_encoded n>:<b64_encoded e>",
+            commands::key,
+            2,4});
         #if !defined(NO_TERMINAL_UI) && defined(NO_CURSES)
         add_command(CommandFunction{
             "scroll",

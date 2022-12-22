@@ -124,7 +124,9 @@ A to SERVER: `REQUEST <B's username>`
 
 If the server knows the B's private key
 
-SERVER to A: `KEY <B's username> <B's public key>`
+SERVER to A: `KEY <B's username> <B's public key> <SERVER's signature>`
+
+You must verify that the message is correctly signed from the server, otherwise there is a risk for MiM attacks
 
 Then if the server is connected to a user with the requested username
 

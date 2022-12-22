@@ -19,11 +19,13 @@ namespace network::authentication
         void save();
         bool add_key(const std::string& name, const std::string& key);
         bool replace_key(const std::string& name, const std::string& key);
+        bool delete_key(const std::string& name);
         class KeyNotFound: public std::exception
         {
         public:
             const char* what(){return "KeyNotFound";}
         };
+        std::vector<std::string> get_all();
         std::string get_key(const std::string& name);
     };
 }
