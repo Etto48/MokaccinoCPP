@@ -287,6 +287,7 @@ namespace terminal::commands
                     logging::log("MSG","    " + std::string(info.direction == network::file::FileTransferDirection::download? "DOWNLOAD":"UPLOAD"));
                     logging::log("MSG","    ACKed " + std::to_string(info.last_acked_number) + "/" + std::to_string(info.data.size()) + " " + std::to_string(float(info.last_acked_number)/info.data.size()*100)+"%");
                     logging::log("MSG","    "+ std::string(info.direction == network::file::FileTransferDirection::download? "Received":"Sent") + " " + std::to_string(info.next_sequence_number) + "/" + std::to_string(info.data.size()) + " " + std::to_string(float(info.next_sequence_number)/info.data.size()*100)+"%");
+                    logging::log("MSG","    Throughput " + std::to_string(info.average_throughput/1024*8) + "Kbps");
                     if(i!=network::file::file_transfers.size()-1)
                         logging::log("MSG","");
                     i++;

@@ -36,6 +36,10 @@ namespace network::file
         FileTransferDirection direction;
         // time of the last sent/received ack
         boost::posix_time::ptime last_ack;
+        // average number of bytes sent in a second
+        double average_throughput = 0;
+        void update_average_throughput(size_t delta_bytes, const boost::posix_time::time_duration& delta_time);
+        void update_ack();
         // get how many chunks there are in a file of "data_size" bytes
         static size_t chunk_count(size_t data_size);
         // constructor for upload

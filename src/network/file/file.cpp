@@ -20,6 +20,7 @@ namespace network::file
     constexpr size_t CHUNK_SIZE = 1024;
     constexpr unsigned int ACK_EVERY = 100;//milliseconds if no new packets received
     constexpr unsigned int ACCEPT_TIMEOUT = 10; // seconds
+    constexpr double TP_EXP_AVG_ALPHA = 0.1;
     size_t window_size = 10; // CHUNKS
     size_t FileTransferInfo::chunk_count(size_t data_size)
     {
@@ -27,6 +28,29 @@ namespace network::file
         if(data_size%CHUNK_SIZE != 0)
             ret++;
         return ret;
+    }
+    void FileTransferInfo::update_average_throughput(
+        size_t delta_bytes, 
+        const boost::posix_time::time_duration& delta_time)
+    {
+        double new_val;
+        if(delta_time.total_microseconds()==0)
+            return;
+        if(delta_bytes == 0)
+            new_val = 0;
+        else
+            new_val = (double)delta_bytes/((double)delta_time.total_microseconds()*1e-6);
+        if(this->average_throughput==0)
+            this->average_throughput = new_val;
+        else
+            this->average_throughput = this->average_throughput*(1.0-TP_EXP_AVG_ALPHA) + TP_EXP_AVG_ALPHA*new_val;
+    }
+    void FileTransferInfo::update_ack()
+    {
+        auto now = boost::posix_time::microsec_clock::local_time();
+        this->update_average_throughput(this->next_sequence_number-this->last_acked_number,now-this->last_ack);
+        this->last_ack = now;
+        this->last_acked_number = this->next_sequence_number;
     }
     FileTransferInfo FileTransferInfo::prepare_for_upload(
             const std::string& file_name,
@@ -41,6 +65,7 @@ namespace network::file
         ret.received_chunks = std::vector<bool>(chunk_count(data.size()),false);
         ret.next_sequence_number = 0;
         ret.last_acked_number = 0;
+        ret.average_throughput = 0;
         ret.direction = FileTransferDirection::upload;
         ret.last_ack = boost::posix_time::microsec_clock::local_time();
         return ret;
@@ -58,6 +83,7 @@ namespace network::file
         ret.received_chunks = std::vector<bool>(chunk_count(file_size),false);
         ret.next_sequence_number = 0;
         ret.last_acked_number = 0;
+        ret.average_throughput = 0;
         ret.direction = FileTransferDirection::download;
         ret.last_ack = boost::posix_time::microsec_clock::local_time();
         return ret;
@@ -144,8 +170,7 @@ namespace network::file
         if(info.received_chunks[chunk_number])
         {// already received
             udp::send(parsing::compose_message({"FILEACK",file_hash,std::to_string(info.next_sequence_number)}),endpoint);
-            info.last_ack = boost::posix_time::microsec_clock::local_time();
-            info.last_acked_number = info.next_sequence_number;
+            info.update_ack();
             return true;
         }
         //not of CHUNK_SIZE or not last chunk and missing size
@@ -165,8 +190,7 @@ namespace network::file
         if(info.next_sequence_number == info.data.size() or info.last_acked_number+(window_size*CHUNK_SIZE) <= info.next_sequence_number)
         { // in this case we need to send an ACK asap
             udp::send(parsing::compose_message({"FILEACK",file_hash,std::to_string(info.next_sequence_number)}),endpoint);
-            info.last_ack = boost::posix_time::microsec_clock::local_time();
-            info.last_acked_number = info.next_sequence_number;
+            info.update_ack();
 
             if(info.next_sequence_number == info.data.size())
                 return _finalize_file_download(file_hash);
@@ -217,8 +241,10 @@ namespace network::file
             _create_and_send_file_packet(info.last_acked_number,file_hash,info,endpoint);
             return true;
         }
+        auto now = boost::posix_time::microsec_clock::local_time();
+        info.update_average_throughput(acked_number - info.last_acked_number,now-info.last_ack);
         info.last_acked_number = acked_number;
-        info.last_ack = boost::posix_time::microsec_clock::local_time();
+        info.last_ack = now;
         return true;
     }
     bool delete_file_transfer(const std::string& username, const std::string& file_hash)
@@ -301,7 +327,7 @@ namespace network::file
                                     // we have "window_difference" packets that we didn't ack or the last ack was very long ago
                                     if(window_difference >= max_window_size or (now-info.last_ack).total_milliseconds() > ACK_EVERY)
                                     { // we ack everything we received
-                                        info.last_acked_number = info.next_sequence_number;
+                                        info.update_ack();
                                         udp::send(parsing::compose_message({"FILEACK",k,std::to_string(info.last_acked_number)}),endpoint);
                                     }
                                 }

@@ -82,6 +82,12 @@ namespace terminal
                 logging::log("MSG","- " HIGHLIGHT "exit" RESET);
                 logging::log("MSG","    Close the program");
                 logging::log("MSG","");
+                logging::log("MSG",HIGHLIGHT "Keyboard shortcuts" RESET ":");
+                logging::log("MSG","    CTRL+C: close the program");
+                logging::log("MSG","    PAGE UP: scroll up a line");
+                logging::log("MSG","    PAGE DOWN: scroll down a line");
+                logging::log("MSG","    ARROW UP: previous command in history");
+                logging::log("MSG","    ARROW DOWN: next command in history");
                 logging::log("MSG","Use \"help <command>\" to show more info about a specific command");
                 return true;
             }

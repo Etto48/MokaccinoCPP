@@ -15,10 +15,10 @@ namespace network::timecheck
     #define PING_EVERY 1 // s
     #define RUN_EVERY 500 // ms
     #define CONFIDENCE 3 // times the avg latency to determine timeout
-    #define MAX_STRIKES 3 // subsequent packets lost for disconnect
+    #define MAX_STRIKES 5 // subsequent packets lost for disconnect
     #define REQUEST_TIMEOUT 10 // s 
     #define CONNECTION_TIMEOUT 10 // s
-    constexpr boost::posix_time::time_duration MIN_PING(boost::posix_time::millisec(10)); // ms
+    constexpr boost::posix_time::time_duration MIN_PING(boost::posix_time::millisec(20)); // ms
     boost::random::mt19937 rng;
     void timecheck()
     {
