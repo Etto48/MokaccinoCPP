@@ -197,11 +197,12 @@ namespace network::connection
                         data.last_ping_id = 0; // ping received
                         data.last_latency = now - data.ping_sent;
                         data.offline_strikes = 0; // no strikes, just packet lost
-                        #define MOVING_AVG_FACTOR 7
+                        #define EXP_AVG_FACTOR 8
+                        #define EXP_AVG_MAX    10
                         if(data.avg_latency == boost::posix_time::time_duration{})
                             data.avg_latency = data.last_latency;
                         else
-                            data.avg_latency = (data.avg_latency * MOVING_AVG_FACTOR / 10) + (data.last_latency * (10-MOVING_AVG_FACTOR) / 10);
+                            data.avg_latency = (data.avg_latency * EXP_AVG_FACTOR / EXP_AVG_MAX) + (data.last_latency * (EXP_AVG_MAX-EXP_AVG_FACTOR) / EXP_AVG_MAX);
                         //logging::log("DBG","Handled pong from " HIGHLIGHT + item.src + RESET);
                     }
                 }
