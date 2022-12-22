@@ -137,10 +137,12 @@ namespace network::connection
                     else
                     {
                         auto target = udp::connection_map[args[0]];
-                        udp::send(parsing::compose_message(
+                        auto m = parsing::compose_message(
                             {"REQUESTED",
                             item.src,
-                            item.src_endpoint.address().to_string()+':'+std::to_string(item.src_endpoint.port())}),
+                            item.src_endpoint.address().to_string()+':'+std::to_string(item.src_endpoint.port())});
+                        parsing::sign_and_append(m);
+                        udp::send(m,
                             target.endpoint);
                     }
                 }
@@ -156,32 +158,39 @@ namespace network::connection
                     }
                 }
                 //REQUESTED <from> <at>
-                else if(args[0] == "REQUESTED" and args.size() == 4 and not udp::connection_map.check_user(args[1]) and udp::connection_map.server() == item.src_endpoint)
+                else if(args[0] == "REQUESTED" and args.size() == 5 and not udp::connection_map.check_user(args[1]) and udp::connection_map.server() == item.src_endpoint)
                 {
-                    try{
-                        auto endpoint = parsing::endpoint_from_str(args[2]);
-                        if(check_whitelist(args[1]) or default_action == ConnectionAction::ACCEPT)
-                        {
-                            accept_server_request(endpoint,args[1],args[3]);
-                        }else if(default_action == ConnectionAction::REFUSE)
-                        {
-                            logging::log("MSG","Connection refused automatically from \"" HIGHLIGHT +args[1]+ RESET "\"");
-                        }else
-                            terminal::input(
-                                "User \"" HIGHLIGHT + args[1] + RESET 
-                                "\" (" HIGHLIGHT +endpoint.address().to_string()+ RESET 
-                                ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET 
-                                ") requested to connect, accept? (y/n)",
-                                [args,item,endpoint](const std::string& input){
-                                    if(input == "Y" or input == "y")
-                                        accept_server_request(endpoint,args[1],args[3]);
-                                    else
-                                    {
-                                        logging::log("MSG","Connection refused from \"" HIGHLIGHT +args[1]+ RESET "\"");
-                                    }
-                            });
-                    }catch(parsing::EndpointFromStrError&)
-                    {}
+                    if(parsing::verify_signature_from_message(item.msg,item.src))
+                    {
+                        try{
+                            auto endpoint = parsing::endpoint_from_str(args[2]);
+                            if(check_whitelist(args[1]) or default_action == ConnectionAction::ACCEPT)
+                            {
+                                accept_server_request(endpoint,args[1],args[3]);
+                            }else if(default_action == ConnectionAction::REFUSE)
+                            {
+                                logging::log("MSG","Connection refused automatically from \"" HIGHLIGHT +args[1]+ RESET "\"");
+                            }else
+                                terminal::input(
+                                    "User \"" HIGHLIGHT + args[1] + RESET 
+                                    "\" (" HIGHLIGHT +endpoint.address().to_string()+ RESET 
+                                    ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET 
+                                    ") requested to connect, accept? (y/n)",
+                                    [args,item,endpoint](const std::string& input){
+                                        if(input == "Y" or input == "y")
+                                            accept_server_request(endpoint,args[1],args[3]);
+                                        else
+                                        {
+                                            logging::log("MSG","Connection refused from \"" HIGHLIGHT +args[1]+ RESET "\"");
+                                        }
+                                });
+                        }catch(parsing::EndpointFromStrError&)
+                        {}
+                    }
+                    else
+                    {
+                        logging::log("ERR","User " HIGHLIGHT +args[1]+ RESET " requested you at " HIGHLIGHT +item.src+ RESET "but its key was modified, for safety reasons the connection was interrupted");
+                    }
                 }
                 else if(args[0] == "FAIL" and args.size() == 2)
                 {

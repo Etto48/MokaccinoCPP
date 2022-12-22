@@ -130,7 +130,9 @@ You must verify that the message is correctly signed from the server, otherwise 
 
 Then if the server is connected to a user with the requested username
 
-SERVER to B: `REQUESTED <A's username> <A's IP>:<A's port> <A's public key>`
+SERVER to B: `REQUESTED <A's username> <A's IP>:<A's port> <A's public key> <SERVER's signature>`
+
+You must verify that the message is correctly signed from the server, otherwise there is a risk for MiM attacks
 
 Now B tries to connect to A with the **direct connection** method
 
