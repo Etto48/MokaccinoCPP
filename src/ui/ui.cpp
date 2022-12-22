@@ -198,10 +198,13 @@ namespace ui
     int getline_cursor = 0;
     std::string getline()
     {
+        static std::list<std::string> history;
+        std::list<std::string>::iterator history_iterator = history.end();
         getline_buffer = "";
         std::string ret;
         int c;
         getline_cursor = 0;
+        auto next_iter = [](std::list<std::string>::iterator i){return ++i;};
         while(true){
             c = getch();
 
@@ -213,6 +216,19 @@ namespace ui
                 ret = getline_buffer;
                 getline_buffer = "";
                 getline_cursor = 0;
+                if(history_iterator == history.end())
+                {
+                    history.emplace_back(ret);
+                    if(history.size()>=MAX_HISTORY_LINES)
+                    {
+                        history.pop_front();
+                    }
+                }
+                else
+                {
+                    history.erase(history_iterator);
+                    history.emplace_back(ret);
+                }
                 break;
             }
             switch (c)
@@ -221,40 +237,65 @@ namespace ui
             case '\b':
                 if(getline_cursor > 0)
                 {
+                    history_iterator = history.end();
                     getline_buffer.erase(getline_cursor-1,1);
                     getline_cursor--;
                 }
                 break;
-            case KEY_LEFT:
+            case KEY_DC:
+                if(getline_cursor < (int)getline_buffer.length())
+                {
+                    history_iterator = history.end();
+                    getline_buffer.erase(getline_cursor,1);
+                }
+                break;
+            case KEY_UP://history prev
+                if(history_iterator != history.begin())
+                {
+                    history_iterator--;
+                    getline_buffer = *history_iterator;
+                    getline_cursor = (int)getline_buffer.length();
+                }
+                break;
+            case KEY_DOWN://history next
+                if(history_iterator != history.end() and next_iter(history_iterator) != history.end())
+                {
+                    history_iterator++;
+                    getline_buffer = *history_iterator;
+                    getline_cursor = (int)getline_buffer.length();
+                }
+                break;
+            case KEY_LEFT://move cursor
                 if(getline_cursor > 0)
                     getline_cursor--;
                 break;
-            case KEY_RIGHT:
+            case KEY_RIGHT://move cursor
                 if(getline_cursor < getline_buffer.length())
                     getline_cursor++;
                 break;
-            case KEY_HOME:
+            case KEY_HOME://cursor to begin
                 getline_cursor = 0;
                 break;
-            case KEY_END:
+            case KEY_END://cursor to end
                 getline_cursor = (int)getline_buffer.length();
                 break;
-            case KEY_UP:
+            case KEY_PPAGE://scroll up
                 _scroll_text(1);
                 break;
-            case KEY_DOWN:
+            case KEY_NPAGE://scroll down
                 _scroll_text(-1);
                 break;
-            case KEY_SEND:
+            case KEY_SEND://scroll to bottom
                 lines_offset = 0;
                 redraw_lines();
                 break;
-            case KEY_CTRL_C:
+            case KEY_CTRL_C://stop program
                 throw KeyboardInterrupt{};
                 break;
             default:
                 if(c>=-1 and c<=255 and std::isprint(c))
                 {
+                    history_iterator = history.end();
                     getline_buffer.insert(getline_buffer.begin()+getline_cursor,c);
                     getline_cursor ++;
                 }
@@ -300,6 +341,7 @@ namespace ui
     void print(const std::string& str)
     {
         std::unique_lock lines_lock(interface_mutex);
+        lines_offset = 0;
         auto line = parsing::curses_split_color(str);
         while(line.size() > COLS)
         {
@@ -315,6 +357,7 @@ namespace ui
     void print(const std::string& prefix, const std::string& msg)
     {
         std::unique_lock lines_lock(interface_mutex);
+        lines_offset = 0;
         auto plen = parsing::strip_ansi(prefix).length();
         auto line = parsing::curses_split_color(prefix+msg);
         auto filler = std::vector{plen,std::pair{' ',0}};

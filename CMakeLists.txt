@@ -10,7 +10,7 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF) 
 set(Boost_DEBUG OFF)
-set(OPENSSL_USE_STATIC_LIBS ON)
+set(OPENSSL_USE_STATIC_LIBS OFF)
 
 #packages
 find_package(Boost COMPONENTS thread chrono program_options REQUIRED)

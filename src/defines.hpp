@@ -5,6 +5,7 @@
 #define DEFAULT_PORT 23232
 #define DEFAULT_PORT_STR "23232"
 #define NONCE_NON_ENCODED_LENGTH 36
+#define MAX_HISTORY_LINES 100
 
 #ifdef _WIN32
 #define HOME_PATH parsing::getenv("USERPROFILE")

@@ -63,7 +63,7 @@ namespace network::connection
             if(args.size() > 0)
             {
                 std::unique_lock lock(status_map_mutex);
-                if(args[0] == "CONNECT" and args.size() == 5)
+                if(args[0] == "CONNECT" and args.size() == 5 and not udp::connection_map.check_user(args[1]))
                 {
                     if(check_whitelist(args[1]) or default_action == ConnectionAction::ACCEPT)
                     {
@@ -246,13 +246,21 @@ namespace network::connection
             udp::register_queue("TEST",connection_queue,true);
         multithreading::add_service("connection",connection);
     }
-    void connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name)
+    bool connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name)
     {
-        std::unique_lock lock(status_map_mutex);
-        status_map[endpoint] = {"HANDSHAKE",expected_name,boost::posix_time::microsec_clock::local_time()};
-        auto m = parsing::compose_message({"CONNECT",username,authentication::generate_nonce(),authentication::local_public_key()});
-        parsing::sign_and_append(m);
-        udp::send(m,endpoint);
+        try{//already connected
+            auto name = udp::connection_map[endpoint].name;
+            logging::log("ERR","You are already connected with " HIGHLIGHT +name+ RESET " at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
+            return false;
+        }catch(DataMap::NotFound&)
+        {
+            std::unique_lock lock(status_map_mutex);
+            status_map[endpoint] = {"HANDSHAKE",expected_name,boost::posix_time::microsec_clock::local_time()};
+            auto m = parsing::compose_message({"CONNECT",username,authentication::generate_nonce(),authentication::local_public_key()});
+            parsing::sign_and_append(m);
+            udp::send(m,endpoint);
+            return true;
+        }
     }
     bool connection_timed_out(const boost::asio::ip::udp::endpoint& endpoint)
     {

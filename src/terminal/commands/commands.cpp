@@ -24,7 +24,7 @@ namespace terminal::commands
                 auto endpoint = endpoint_hostname.first;
                 auto host = endpoint_hostname.second;
                 logging::log("DBG","Target found at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
-                network::connection::connect(endpoint, host);
+                return network::connection::connect(endpoint, host);
             }catch(network::udp::LookupError)
             {
                 logging::lookup_error_log(args[2]);
@@ -36,6 +36,7 @@ namespace terminal::commands
             try
             {
                 network::udp::server_request(args[2]);
+                return true;
             }catch(network::DataMap::NotFound)
             {
                 logging::no_server_available_log();
@@ -47,7 +48,6 @@ namespace terminal::commands
             logging::log("ERR","The second argument must be hostname or name, use \"help connect\" for more info");
             return false;
         }
-        return true;
     }
 
     bool disconnect(const std::string& line, const std::vector<std::string>& args)

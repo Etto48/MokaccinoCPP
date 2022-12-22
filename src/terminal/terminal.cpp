@@ -239,7 +239,7 @@ namespace terminal
             "Send a file to a user or show the status of every ongoing file transfer",
             commands::file,
             2,4}); 
-        #ifndef NO_TERMINAL_UI
+        #if !defined(NO_TERMINAL_UI) && defined(NO_CURSES)
         add_command(CommandFunction{
             "scroll",
             "(up|down) [lines]",

@@ -49,8 +49,10 @@ namespace network::connection
      * 
      * @param endpoint the target endpoint
      * @param expected_name the name expected from the other endpoint
+     * @return true if the connection starts well
+     * @return false if you are already connected with someone with the same endpoint
      */
-    void connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name);
+    bool connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name);
     /**
      * @brief this must be used to notify the connection module that a pending connection timed out
      * 
