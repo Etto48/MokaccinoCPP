@@ -373,6 +373,7 @@ namespace network::audio
             {   try
                 {
                     audio_buddy = {"loopback",udp::connection_map["loopback"].endpoint};
+                    logging::log("MSG","Voice call accepted from " HIGHLIGHT "loopback" RESET);
                     comms_init();
                     return true;
                 }catch(network::DataMap::NotFound&)
