@@ -46,7 +46,9 @@ int main(int argc, char* argv[])
 
     desc.add_options()
         ("help,h",
-            "print help message")
+            "print help message and exit")
+        ("version,v",
+            "print version number and exit")
         ("port,p",boost::program_options::value<uint16_t>()->default_value(DEFAULT_PORT)->value_name("port"),
             "set a custom port for network communications")
         ("username,u",boost::program_options::value(&username)->value_name("username"),
@@ -67,6 +69,12 @@ int main(int argc, char* argv[])
     if(args.count("help"))
     {
         std::cout << desc << std::endl;
+    }
+    else if(args.count("version"))
+    {
+        std::cout << "Mokaccino " << BUILD_TAG_VERSION << std::endl;
+        std::cout << std::endl;
+        std::cout << "Copyright (c) 2022 Ettore Ricci" << std::endl;
     }
     else
     {

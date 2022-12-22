@@ -79,6 +79,19 @@ if(DISABLE_CLOCK)
     add_compile_definitions(NO_CLOCK)
     message(STATUS "Disabling clock")
 endif()
+#git tag as version
+execute_process(COMMAND git describe --tags
+    TIMEOUT 5
+    OUTPUT_VARIABLE GIT_TAG_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(${GIT_TAG_VERSION} STREQUAL "")
+    message(WARNING "Error finding git tag, defaulting to version v1.0.0")
+else()
+    message(STATUS "Building with git tag ${GIT_TAG_VERSION}")
+    add_compile_definitions(BUILD_TAG_VERSION=\"${GIT_TAG_VERSION}\")
+endif()
+
 
 
 #link and include
