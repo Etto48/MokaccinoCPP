@@ -27,7 +27,7 @@ namespace network::connection
         }
         return false;
     }
-    void accept_connection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name, const std::string& received_public_key, const std::string& sm)
+    void accept_connection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name,const std::string& received_nonce, const std::string& received_public_key, const std::string& sm)
     {
         authentication::known_users.add_key(name,received_public_key);
         if(not parsing::verify_signature_from_message(sm,name))
@@ -37,8 +37,8 @@ namespace network::connection
         }else
         {
             auto nonce = authentication::generate_nonce();
-            status_map[endpoint] = {"CONNECTED",name,boost::posix_time::microsec_clock::local_time()};
-            auto m = parsing::compose_message({"HANDSHAKE",username,nonce,authentication::local_public_key()});
+            status_map[endpoint] = {"CONNECTED",name,nonce,received_nonce,boost::posix_time::microsec_clock::local_time()};
+            auto m = parsing::compose_message({"HANDSHAKE",username,nonce,received_nonce,authentication::local_public_key()});
             parsing::sign_and_append(m);
             udp::send(m,endpoint);
             logging::log("MSG","Connection accepted from " HIGHLIGHT + name + RESET " at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
@@ -48,7 +48,7 @@ namespace network::connection
     {
         authentication::known_users.add_key(name,received_public_key);
         auto nonce = authentication::generate_nonce();
-        status_map[endpoint] = {"HANDSHAKE",name,boost::posix_time::microsec_clock::local_time()};
+        status_map[endpoint] = {"HANDSHAKE",name,nonce,"",boost::posix_time::microsec_clock::local_time()};
         auto m = parsing::compose_message({"CONNECT",username,nonce,authentication::local_public_key()});
         parsing::sign_and_append(m);
         udp::send(m,endpoint);
@@ -67,7 +67,7 @@ namespace network::connection
                 {
                     if(check_whitelist(args[1]) or default_action == ConnectionAction::ACCEPT)
                     {
-                        accept_connection(item.src_endpoint,args[1],args[3],item.msg);
+                        accept_connection(item.src_endpoint,args[1],args[2],args[3],item.msg);
                     }else if(default_action == ConnectionAction::REFUSE)
                     {
                         udp::send(parsing::compose_message({"DISCONNECT","connection refused"}),item.src_endpoint);
@@ -80,7 +80,7 @@ namespace network::connection
                             ") requested to connect, accept? (y/n)",
                             [args,item](const std::string& input){
                                 if(input == "Y" or input == "y")
-                                    accept_connection(item.src_endpoint,args[1],args[3],item.msg);
+                                    accept_connection(item.src_endpoint,args[1],args[2],args[3],item.msg);
                                 else
                                 {
                                     udp::send(parsing::compose_message({"DISCONNECT","connection refused"}),item.src_endpoint);
@@ -88,14 +88,16 @@ namespace network::connection
                                 }
                             });
                 }
-                else if(args[0] == "HANDSHAKE" and args.size() == 5 and (status_map[item.src_endpoint].expected_message == "HANDSHAKE" or status_map[item.src_endpoint].expected_message == "CONNECTED"))
+                else if(args[0] == "HANDSHAKE" and args.size() == 6 and status_map[item.src_endpoint].expected_message == "HANDSHAKE")
                 {
-                    authentication::known_users.add_key(args[1],args[3]);
-                    if(parsing::verify_signature_from_message(item.msg,args[1]))
+                    authentication::known_users.add_key(args[1],args[4]);
+                    auto sent_nonce = status_map[item.src_endpoint].sent_nonce;
+                    if(parsing::verify_signature_from_message(item.msg,args[1]) and sent_nonce == args[2])
                     {
-                        status_map[item.src_endpoint] = {"ZOMBIE",args[1],boost::posix_time::microsec_clock::local_time()};
+                        status_map.erase(item.src_endpoint);
                         udp::connection_map.add_user(args[1],item.src_endpoint);
-                        udp::send(parsing::compose_message({"CONNECTED"}),item.src_endpoint);
+                        auto m = parsing::compose_message({"CONNECTED",args[3]});
+                        udp::send(m,item.src_endpoint);
                         if(not udp::server_request_success(args[1]))
                             logging::log("MSG","Connection accepted from " HIGHLIGHT + args[1] + RESET " at " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
                     }
@@ -105,12 +107,21 @@ namespace network::connection
                         status_map.erase(item.src_endpoint);
                     }
                 }
-                else if(args[0] == "CONNECTED" and args.size() == 1 and (status_map[item.src_endpoint].expected_message == "CONNECTED" or status_map[item.src_endpoint].expected_message == "ZOMBIE"))
+                else if(args[0] == "CONNECTED" and args.size() == 3 and status_map[item.src_endpoint].expected_message == "CONNECTED")
                 {
                     auto name = status_map[item.src_endpoint].name;
-                    status_map.erase(item.src_endpoint);
-                    udp::connection_map.add_user(name,item.src_endpoint);
-                    logging::log("MSG","Peer " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET " is now connected as user \"" HIGHLIGHT+name+RESET"\"");
+                    auto sent_nonce = status_map[item.src_endpoint].sent_nonce;
+                    if(parsing::verify_signature_from_message(item.msg,name) and sent_nonce == args[1])
+                    {
+                        status_map.erase(item.src_endpoint);
+                        udp::connection_map.add_user(name,item.src_endpoint);
+                        logging::log("MSG","Peer " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET " is now connected as user \"" HIGHLIGHT+name+RESET"\"");
+                    }
+                    else
+                    {
+                        logging::log("ERR","Connection refused from \"" HIGHLIGHT + name + RESET "\" because of an authentication error");
+                        status_map.erase(item.src_endpoint);
+                    }
                 }
                 else if(args[0] == "DISCONNECT" and args.size() >= 1 and args.size() <= 2)
                 {
@@ -274,8 +285,9 @@ namespace network::connection
         }catch(DataMap::NotFound&)
         {
             std::unique_lock lock(status_map_mutex);
-            status_map[endpoint] = {"HANDSHAKE",expected_name,boost::posix_time::microsec_clock::local_time()};
-            auto m = parsing::compose_message({"CONNECT",username,authentication::generate_nonce(),authentication::local_public_key()});
+            auto nonce = authentication::generate_nonce();
+            status_map[endpoint] = {"HANDSHAKE",expected_name,nonce,"",boost::posix_time::microsec_clock::local_time()};
+            auto m = parsing::compose_message({"CONNECT",username,nonce,authentication::local_public_key()});
             parsing::sign_and_append(m);
             udp::send(m,endpoint);
             return true;

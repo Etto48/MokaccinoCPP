@@ -12,6 +12,8 @@ namespace network::connection
     {
         std::string expected_message;
         std::string name;
+        std::string sent_nonce;
+        std::string received_nonce;
         boost::posix_time::ptime registration_time;
     };
     /**
