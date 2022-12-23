@@ -92,11 +92,12 @@ namespace network::connection
                 {
                     authentication::known_users.add_key(args[1],args[4]);
                     auto sent_nonce = status_map[item.src_endpoint].sent_nonce;
-                    if(parsing::verify_signature_from_message(item.msg,args[1]) and sent_nonce == args[2])
+                    if(parsing::verify_signature_from_message(item.msg,args[1]) and sent_nonce == args[3])
                     {
                         status_map.erase(item.src_endpoint);
                         udp::connection_map.add_user(args[1],item.src_endpoint);
-                        auto m = parsing::compose_message({"CONNECTED",args[3]});
+                        auto m = parsing::compose_message({"CONNECTED",args[2]});
+                        parsing::sign_and_append(m);
                         udp::send(m,item.src_endpoint);
                         if(not udp::server_request_success(args[1]))
                             logging::log("MSG","Connection accepted from " HIGHLIGHT + args[1] + RESET " at " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);

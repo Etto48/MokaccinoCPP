@@ -91,7 +91,7 @@ Mokaccino uses an ascii protocol over UDP (because UDP hole punching is easier t
 The connection is established with a 3 way handshake
 
 1) A: `CONNECT <A's username> <A's nonce> <A's public key> <A's signature>`
-2) B: `HANDSHAKE <B's username> <A's nonce> <B's nonce> <B's public key> <B's signature>`
+2) B: `HANDSHAKE <B's username> <B's nonce> <A's nonce> <B's public key> <B's signature>`
 3) A: `CONNECTED <B's nonce> <B's signature>` 
 
 B must store A's public key for the next time and verify the signature received from A
