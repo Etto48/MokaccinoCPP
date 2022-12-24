@@ -60,6 +60,9 @@ whitelist = ["peer1"]
 # this can be set to "accept" (auto accept every request), "refuse" (auto refuse every not whitelisted connection), "prompt" same as not defined
 default_action = "prompt"
 
+# this is the minimum volume to send the audio, to disable the voice activation detection set this to 0
+threshold = 40
+
 [network.connection]
 # if someone in this list requests connection, the request is automatically accepted
 whitelist = ["peer1","peer2"]

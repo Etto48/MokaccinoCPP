@@ -50,6 +50,5 @@ namespace logging
     void no_server_available_log();
     void command_not_found_log(const std::string& line);
     void config_not_found_log(const std::string& path);
-    void config_error_log(const toml::parse_error& e);
     void audio_call_error_log(const std::string& why);
 }

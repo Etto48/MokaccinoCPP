@@ -38,6 +38,8 @@ namespace network::audio
     unsigned char* input_encoder_buffer = nullptr;
     unsigned char* output_decoder_buffer = nullptr;
 
+    uint16_t voice_threshold = 40;
+
     constexpr opus_int32 SAMPLE_RATE = 48000;
     
     constexpr unsigned long FRAMES_PER_BUFFER = 120;
@@ -61,18 +63,16 @@ namespace network::audio
     unsigned long long input_dropped_frames = 0;
     unsigned long long output_dropped_frames = 0;
 
-    inline unsigned long rms(const void *input, unsigned long frame_count)
+    int16_t volume(const int16_t* input, unsigned long frameCount)
     {
-        unsigned long ret = 0;
-        for(unsigned long i = 0; i < frame_count; i++)
+        size_t ret = 0;
+        for(auto v = input; v < input+frameCount; v++)
         {
-            auto& d = ((AUDIO_DATA_TYPE*)input)[i];
-            ret += d*d;
+            ret += std::abs(*v);
         }
-        ret /= frame_count;
-        return ret;
+        ret /= frameCount;
+        return (int16_t)ret;
     }
-
 
     int input_callback(const void *input, void *output, unsigned long frameCount, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
     {
@@ -81,8 +81,8 @@ namespace network::audio
             input_dropped_frames++;
             return 0;
         }
-        //if(rms(input,frameCount) <= 2000)
-        //    return 0;
+        if(volume((const int16_t*)input,frameCount) < voice_threshold)
+            return 0;
         auto encoded_size = opus_encode(encoder,(opus_int16*)input,frameCount,input_encoder_buffer,BUFFER_OPUS_SIZE);
         if(encoded_size < 0)
             return 0;
@@ -337,8 +337,9 @@ namespace network::audio
             }
         }
     }
-    void init(const std::vector<std::string>& whitelist, const std::string& default_action)
+    void init(const std::vector<std::string>& whitelist, const std::string& default_action, int16_t voice_volume_threshold)
     {
+        voice_threshold = voice_volume_threshold;
         audio::whitelist = whitelist;
         if(default_action == "accept")
         {

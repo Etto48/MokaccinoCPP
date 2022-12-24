@@ -11,8 +11,9 @@ namespace network::audio
      * 
      * @param whitelist list of users to automatically accept
      * @param default_action what to do if a user is not in the whitelist
+     * @param voice_volume_threshold the minimum volum to send when on a voice call
      */
-    void init(const std::vector<std::string>& whitelist, const std::string& default_action);
+    void init(const std::vector<std::string>& whitelist, const std::string& default_action, int16_t voice_volume_threshold=40);
     /**
      * @brief start a voice call with a connected user if no other call is happening
      * 

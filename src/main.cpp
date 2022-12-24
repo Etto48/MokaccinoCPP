@@ -103,7 +103,9 @@ int main(int argc, char* argv[])
             }
             else
             {
-                logging::config_error_log(e);
+                std::cout << "Config file parsing error:" << std::endl;
+                std::cout << "    " << e.what() << std::endl;
+                std::cout << "    " << *e.source().path << " (" << e.source().begin.line << ", " << e.source().begin.column << ")" << std::endl;
                 return -1;
             }
         }
@@ -170,7 +172,7 @@ int main(int argc, char* argv[])
             config["network"]["connection"]["default_action"].value_or(std::string("prompt")));
         network::messages::init();
         network::timecheck::init();
-        network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")));
+        network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")),config["network"]["audio"]["threshold"].value_or<int16_t>(40));
         network::file::init();
 
         //autoconnection

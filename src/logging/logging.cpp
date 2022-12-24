@@ -208,12 +208,6 @@ namespace logging
     {
         log("ERR","Config file \"" HIGHLIGHT + path + RESET "\" not found");
     }
-    void config_error_log(const toml::parse_error& e)
-    {
-        log("ERR","Config file parsing error:");
-        log("ERR",std::string("    ") + e.what());
-        log("ERR",std::string("    ") + (*e.source().path) + " (" + std::to_string(e.source().begin.line) + ", " + std::to_string(e.source().begin.column) + ")");
-    }
     void audio_call_error_log(const std::string& why)
     {
         log("ERR","Error during audio initialization (" HIGHLIGHT + why + RESET ")");
