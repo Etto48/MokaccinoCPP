@@ -93,6 +93,13 @@ else()
     add_compile_definitions(BUILD_TAG_VERSION=\"v1.0.0\")
 endif()
 
+option(ECDSA "Use ECDSA instead of RSA to sign messages" ON)
+if(ECDSA)
+    message(STATUS "Using signature algorithm ECDSA (512b)")
+    add_compile_definitions(USE_EC_AUTHENTICATION)
+else()
+    message(STATUS "Using signature algorithm RSA (3072b)")
+endif()
 
 
 #link and include

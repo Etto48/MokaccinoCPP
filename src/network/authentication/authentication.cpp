@@ -2,7 +2,9 @@
 #include "../../defines.hpp"
 #include "../../ansi_escape.hpp"
 #include <openssl/bn.h>
+#include <openssl/evp.h>
 #include <openssl/rsa.h>
+#include <openssl/ecdsa.h>
 #include <openssl/pem.h>
 #include <openssl/buffer.h> 
 #include <openssl/sha.h>
@@ -17,6 +19,141 @@
 namespace network::authentication
 {  
     #define CONCAT_CHAR ':'
+    #ifdef USE_EC_AUTHENTICATION
+    KnownUsers known_users;
+    std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> local_key{nullptr,nullptr};
+    template <typename A, typename D>
+    std::unique_ptr<A,D> make_handle(A* ptr,D destructor)
+    {
+        return std::unique_ptr<A,D>{ptr,destructor};
+    }
+
+    std::string pubkey_to_string(EVP_PKEY* x)
+    {
+        constexpr size_t BUFFER_LEN = 2048;
+        std::unique_ptr<char> key_buffer{new char[BUFFER_LEN]};  
+        memset(key_buffer.get(),'\0',BUFFER_LEN);
+        auto bio = make_handle(BIO_new(BIO_s_mem()),BIO_free);
+        PEM_write_bio_PUBKEY(bio.get(),x);
+        BIO_read(bio.get(),key_buffer.get(),BUFFER_LEN-1);
+        std::string ret = key_buffer.get();
+        ret.erase(ret.begin(),ret.begin()+ret.find('\n'));
+        ret.erase(ret.begin()+ret.find_last_of('\n'),ret.end());
+        ret.erase(ret.begin()+ret.find_last_of('\n'),ret.end());
+        ret.erase(std::remove(ret.begin(),ret.end(),'\n'),ret.cend());
+        return ret;
+    }
+    std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> string_to_pubkey(const std::string& s)
+    {
+        auto pem_content = "-----BEGIN PUBLIC KEY-----\n" + s + "\n-----END PUBLIC KEY-----\n";
+        auto bio = make_handle(BIO_new_mem_buf(pem_content.c_str(),-1),BIO_free);
+        EVP_PKEY* tmp_pkey = nullptr;
+        if(not PEM_read_bio_PUBKEY(bio.get(),&tmp_pkey,nullptr,nullptr))
+            throw std::exception{"Invalid pubkey format"};
+        return {tmp_pkey,EVP_PKEY_free};
+    }
+    void gen_and_load_keys()
+    {
+        try
+        {
+            auto context = make_handle(EVP_PKEY_CTX_new_id(EVP_PKEY_EC,nullptr),EVP_PKEY_CTX_free);
+            if(not context)
+                throw std::exception{"Error creating a new context id"};
+            if(not EVP_PKEY_keygen_init(context.get()))
+                throw std::exception{"Error initializing the keygen"};
+            if(not EVP_PKEY_CTX_set_ec_paramgen_curve_nid(context.get(),NID_secp521r1))
+                throw std::exception{"Error selecting the secp521r1 EC"};
+            EVP_PKEY* tmp_pkey = nullptr;
+            if(not EVP_PKEY_keygen(context.get(),&tmp_pkey))
+                throw std::exception{"Error generating a key"};
+            local_key = make_handle(tmp_pkey,EVP_PKEY_free);
+            auto file = make_handle(BIO_new_file(PRIVKEY_PATH.c_str(),"w"),BIO_free);
+            if(not file)
+                throw std::exception{"Error creating PRIVKEY file"};
+            if(not PEM_write_bio_PrivateKey(file.get(),local_key.get(),nullptr,nullptr,0,nullptr,nullptr))
+                throw std::exception{"Error writing to PRIVKEY file"};
+        }
+        catch(const std::exception& e)
+        {
+            logging::log("ERR","Something went wrong during the key generation: "+std::string(e.what()));
+        }
+    }
+    void load_keys()
+    {
+        try
+        {
+            auto file = make_handle(BIO_new_file(PRIVKEY_PATH.c_str(),"r"),BIO_free);
+            if(not file)
+                throw std::exception{"Error opening PRIVKEY file"};
+            EVP_PKEY* tmp_pkey = nullptr;
+            if(not PEM_read_bio_PrivateKey(file.get(),&tmp_pkey,nullptr,nullptr))
+                throw std::exception{"Error reading PRIVKEY file"};
+            local_key = make_handle(tmp_pkey,EVP_PKEY_free);
+        }
+        catch(const std::exception& e)
+        {
+            logging::log("ERR","Something went wrong during the key loading: "+std::string(e.what()));
+        }
+    }
+    void init()
+    {
+        std::filesystem::create_directories(MOKACCINO_ROOT);
+        if(not std::filesystem::is_regular_file(PRIVKEY_PATH))
+        {//gen key
+            gen_and_load_keys();
+            logging::log("DBG","keypair correctly generated and saved at \"" HIGHLIGHT +PRIVKEY_PATH + RESET "\"");
+        }else
+        {//load keys
+            load_keys();
+            logging::log("DBG","keypair correctly loaded from \"" HIGHLIGHT +PRIVKEY_PATH + RESET "\"");
+        }
+        //logging::log("DBG",local_public_key());
+        //print_keys();
+        //logging::log("DBG","LPK: "+local_public_key());
+        known_users.load(KNOWN_USERS_FILE);
+        known_users.add_key("loopback",local_public_key());
+    }
+
+    bool verify(const std::string& data, const std::string& signed_data, const std::string& username)
+    {
+        try{
+            auto key_str = known_users.get_key(username);
+            if(key_str.length() == 0)//the user was blacklisted
+                return false;
+            try
+            {
+                std::unique_ptr<unsigned char> signature{new unsigned char[b64d_size((unsigned int)signed_data.length())]};
+                auto signature_size = b64_decode((unsigned char*)signed_data.c_str(),(unsigned int)signed_data.length(),signature.get());
+                auto pubkey = string_to_pubkey(key_str);
+                auto message_digest_context = make_handle(EVP_MD_CTX_new(),EVP_MD_CTX_free);
+                EVP_DigestVerifyInit(message_digest_context.get(),nullptr,EVP_sha256(),nullptr,pubkey.get());
+                EVP_DigestVerifyUpdate(message_digest_context.get(),data.c_str(),data.length());
+                return 1==EVP_DigestVerifyFinal(message_digest_context.get(),signature.get(),signature_size);
+            }catch(const std::exception&)
+            {
+                logging::log("ERR","The public key provided by " HIGHLIGHT +username+ RESET "was not a valid key");
+                return false;
+            }
+        }catch(KnownUsers::KeyNotFound&)
+        {
+            return false;
+        }
+    }
+    std::string sign(const std::string& data)
+    {
+        auto message_digest_context = make_handle(EVP_MD_CTX_new(),EVP_MD_CTX_free);
+        EVP_DigestSignInit(message_digest_context.get(),nullptr,EVP_sha256(),nullptr,local_key.get());
+        EVP_DigestSignUpdate(message_digest_context.get(),data.c_str(),data.length());
+        size_t signature_size = 0;
+        EVP_DigestSignFinal(message_digest_context.get(),nullptr,&signature_size);
+        std::unique_ptr<unsigned char> signature{new unsigned char[signature_size]};
+        EVP_DigestSignFinal(message_digest_context.get(),signature.get(),&signature_size);
+        std::unique_ptr<char> b64_signature{new char[b64e_size((unsigned int)signature_size)+1]};
+        b64_encode(signature.get(),(unsigned int)signature_size,(unsigned char*)b64_signature.get());
+
+        return b64_signature.get();
+    }
+    #else
     RSA* local_key = nullptr;
     KnownUsers known_users;
     std::string pubkey_to_string(const RSA* r)
@@ -184,9 +321,10 @@ namespace network::authentication
         b64_encode(signed_data.get(),siglen,(unsigned char*)sign_b64.get());
         return std::string(sign_b64.get());
     }
+    #endif
     std::string local_public_key()
     {
-        return pubkey_to_string(local_key);
+        return pubkey_to_string(local_key.get());
     }
     std::string generate_nonce()
     {
