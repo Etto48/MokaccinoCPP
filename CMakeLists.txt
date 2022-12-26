@@ -95,7 +95,7 @@ endif()
 
 option(ECDSA "Use ECDSA instead of RSA to sign messages" ON)
 if(ECDSA)
-    message(STATUS "Using signature algorithm ECDSA (512b)")
+    message(STATUS "Using signature algorithm ECDSA (521b)")
     add_compile_definitions(USE_EC_AUTHENTICATION)
 else()
     message(STATUS "Using signature algorithm RSA (3072b)")

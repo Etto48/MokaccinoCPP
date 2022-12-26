@@ -105,13 +105,7 @@ If a peer has saved a public key it must ignore every other key sent to him from
 
 #### Signature
 
-The signature must be calculated from the original message `m` (the text of the message excluded the signature) in this way:
-
-`Signature = b64_encode(RSA_encode(SHA256(m),K_priv))`
-
-And the verification must be calculated on the signed message `sm = '<m> <Signature>'` this way
-
-`Valid = SHA256(m) == RSA_decode(b64_decode(Signature),K_pub)`
+The signature and verification algorithm uses ECDSA over the secp521r1 prime curve (you can set it to RSA with a CMake option) with SHA256 as message digest algorithm
 
 #### Direct connection
 

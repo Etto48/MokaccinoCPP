@@ -18,9 +18,8 @@
 #include "KnownUsers/KnownUsers.hpp"
 namespace network::authentication
 {  
-    #define CONCAT_CHAR ':'
-    #ifdef USE_EC_AUTHENTICATION
     KnownUsers known_users;
+    #ifdef USE_EC_AUTHENTICATION
     std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> local_key{nullptr,nullptr};
     template <typename A, typename D>
     std::unique_ptr<A,D> make_handle(A* ptr,D destructor)
@@ -49,7 +48,7 @@ namespace network::authentication
         auto bio = make_handle(BIO_new_mem_buf(pem_content.c_str(),-1),BIO_free);
         EVP_PKEY* tmp_pkey = nullptr;
         if(not PEM_read_bio_PUBKEY(bio.get(),&tmp_pkey,nullptr,nullptr))
-            throw std::exception{"Invalid pubkey format"};
+            throw std::runtime_error{"Invalid pubkey format"};
         return {tmp_pkey,EVP_PKEY_free};
     }
     void gen_and_load_keys()
@@ -58,22 +57,22 @@ namespace network::authentication
         {
             auto context = make_handle(EVP_PKEY_CTX_new_id(EVP_PKEY_EC,nullptr),EVP_PKEY_CTX_free);
             if(not context)
-                throw std::exception{"Error creating a new context id"};
+                throw std::runtime_error{"Error creating a new context id"};
             if(not EVP_PKEY_keygen_init(context.get()))
-                throw std::exception{"Error initializing the keygen"};
+                throw std::runtime_error{"Error initializing the keygen"};
             if(not EVP_PKEY_CTX_set_ec_paramgen_curve_nid(context.get(),NID_secp521r1))
-                throw std::exception{"Error selecting the secp521r1 EC"};
+                throw std::runtime_error{"Error selecting the secp521r1 EC"};
             EVP_PKEY* tmp_pkey = nullptr;
             if(not EVP_PKEY_keygen(context.get(),&tmp_pkey))
-                throw std::exception{"Error generating a key"};
+                throw std::runtime_error{"Error generating a key"};
             local_key = make_handle(tmp_pkey,EVP_PKEY_free);
             auto file = make_handle(BIO_new_file(PRIVKEY_PATH.c_str(),"w"),BIO_free);
             if(not file)
-                throw std::exception{"Error creating PRIVKEY file"};
+                throw std::runtime_error{"Error creating PRIVKEY file"};
             if(not PEM_write_bio_PrivateKey(file.get(),local_key.get(),nullptr,nullptr,0,nullptr,nullptr))
-                throw std::exception{"Error writing to PRIVKEY file"};
+                throw std::runtime_error{"Error writing to PRIVKEY file"};
         }
-        catch(const std::exception& e)
+        catch(const std::runtime_error& e)
         {
             logging::log("ERR","Something went wrong during the key generation: "+std::string(e.what()));
         }
@@ -84,13 +83,13 @@ namespace network::authentication
         {
             auto file = make_handle(BIO_new_file(PRIVKEY_PATH.c_str(),"r"),BIO_free);
             if(not file)
-                throw std::exception{"Error opening PRIVKEY file"};
+                throw std::runtime_error{"Error opening PRIVKEY file"};
             EVP_PKEY* tmp_pkey = nullptr;
             if(not PEM_read_bio_PrivateKey(file.get(),&tmp_pkey,nullptr,nullptr))
-                throw std::exception{"Error reading PRIVKEY file"};
+                throw std::runtime_error{"Error reading PRIVKEY file"};
             local_key = make_handle(tmp_pkey,EVP_PKEY_free);
         }
-        catch(const std::exception& e)
+        catch(const std::runtime_error& e)
         {
             logging::log("ERR","Something went wrong during the key loading: "+std::string(e.what()));
         }
@@ -129,7 +128,7 @@ namespace network::authentication
                 EVP_DigestVerifyInit(message_digest_context.get(),nullptr,EVP_sha256(),nullptr,pubkey.get());
                 EVP_DigestVerifyUpdate(message_digest_context.get(),data.c_str(),data.length());
                 return 1==EVP_DigestVerifyFinal(message_digest_context.get(),signature.get(),signature_size);
-            }catch(const std::exception&)
+            }catch(const std::runtime_error&)
             {
                 logging::log("ERR","The public key provided by " HIGHLIGHT +username+ RESET "was not a valid key");
                 return false;
@@ -153,9 +152,13 @@ namespace network::authentication
 
         return b64_signature.get();
     }
+    std::string local_public_key()
+    {
+        return pubkey_to_string(local_key.get());
+    }
     #else
+    #define CONCAT_CHAR ':'
     RSA* local_key = nullptr;
-    KnownUsers known_users;
     std::string pubkey_to_string(const RSA* r)
     {
         auto* n = RSA_get0_n(r);
@@ -321,11 +324,11 @@ namespace network::authentication
         b64_encode(signed_data.get(),siglen,(unsigned char*)sign_b64.get());
         return std::string(sign_b64.get());
     }
-    #endif
     std::string local_public_key()
     {
-        return pubkey_to_string(local_key.get());
+        return pubkey_to_string(local_key);
     }
+    #endif
     std::string generate_nonce()
     {
         std::unique_ptr<unsigned char> random_bytes{new unsigned char[NONCE_NON_ENCODED_LENGTH]};
