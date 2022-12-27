@@ -81,24 +81,32 @@ namespace network::udp
             logging::message_log(name,msg);*/
         
         auto keyword = parsing::get_msg_keyword(msg);
-        if(name.length() != 0 and keyword == "C")
+        if(keyword == "C")
         {
-            try{
-                std::unique_lock lock(connection_map.obj);
-                auto& info = connection_map[name];
-                if(info.encrypted)
-                {
-                    auto args = parsing::msg_split(msg);
-                    if(args.size() == 4)
+            if(name.length() != 0)
+            {
+                try{
+                    std::unique_lock lock(connection_map.obj);
+                    auto& info = connection_map[name];
+                    if(info.encrypted)
                     {
-                        msg = crypto::decrypt(args[1],info.symmetric_key,args[2],args[3]);
-                        keyword = parsing::get_msg_keyword(msg);
+                        auto args = parsing::msg_split(msg);
+                        if(args.size() == 4)
+                        {
+                            msg = crypto::decrypt(args[1],info.symmetric_key,args[2],args[3]);
+                            keyword = parsing::get_msg_keyword(msg);
+                        }
+                        else
+                            return;
                     }
-                    else
-                        return;
-                }
-            }catch(DataMap::NotFound&)
-            {}
+                }catch(DataMap::NotFound&)
+                {}
+            }
+            else
+            {
+                logging::log("DBG","Dropped encrypted message from anonymous user (" HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET ")");
+                return;
+            }
         }
 
         std::unique_lock lock(message_queue_association_mutex);
