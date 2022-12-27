@@ -331,6 +331,10 @@ namespace network::connection
                                 }catch(std::runtime_error&)
                                 {}
                             }
+                            else if(user_info.asymmetric_key.length() !=0 and user_info.encrypted)
+                            {
+                                udp::send(parsing::compose_message({"CRYPTACK"}),item.src_endpoint);
+                            }
                         }
                         catch(DataMap::NotFound&)
                         {}

@@ -18,6 +18,7 @@ namespace network::timecheck
     #define MAX_STRIKES 5 // subsequent packets lost for disconnect
     #define REQUEST_TIMEOUT 10 // s 
     #define CONNECTION_TIMEOUT 10 // s
+    #define ENCRYPTION_TIMEOUT 1 // s
     constexpr boost::posix_time::time_duration MIN_PING(boost::posix_time::millisec(20)); // ms
     boost::random::mt19937 rng;
     void timecheck()
@@ -53,6 +54,25 @@ namespace network::timecheck
                             logging::log("ERR","User \"" HIGHLIGHT + name + RESET "\" went offline");
                             udp::connection_map.remove_user(name);
                         }
+                    }
+                }
+                if(data_ref.crypt_requested != boost::posix_time::ptime{} and (now - data_ref.crypt_requested).total_seconds() > ENCRYPTION_TIMEOUT)
+                {
+                    if(not data_ref.symmetric_key_valid)
+                    {// sent CRYPTSTART and waiting for CRYPTACCEPT
+                        auto key = udp::crypto::string_to_privkey(data_ref.asymmetric_key);
+                        auto m = parsing::compose_message({"CRYPTSTART",udp::crypto::pubkey_to_string(key.get())});
+                        parsing::sign_and_append(m);
+                        data_ref.crypt_requested = now;
+                        udp::send(m,data_ref.endpoint);
+                    }
+                    else
+                    {// sent CRYPTACCEPT and waiting for CRYPTACK
+                        auto key = udp::crypto::string_to_privkey(data_ref.asymmetric_key);
+                        auto m = parsing::compose_message({"CRYPTACCEPT",udp::crypto::pubkey_to_string(key.get())});
+                        parsing::sign_and_append(m);
+                        data_ref.crypt_requested = now;
+                        udp::send(m,data_ref.endpoint); 
                     }
                 }
                 boost::this_thread::interruption_point();
