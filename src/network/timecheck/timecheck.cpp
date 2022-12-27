@@ -56,7 +56,7 @@ namespace network::timecheck
                         }
                     }
                 }
-                if(not data_ref.encrypted and (now - data_ref.crypt_requested).total_seconds() > ENCRYPTION_TIMEOUT)
+                if(not data_ref.encrypted and data_ref.asymmetric_key.length() > 0 and (now - data_ref.crypt_requested).total_seconds() > ENCRYPTION_TIMEOUT)
                 {
                     if(not data_ref.symmetric_key_valid)
                     {// sent CRYPTSTART and waiting for CRYPTACCEPT
