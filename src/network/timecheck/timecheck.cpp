@@ -56,7 +56,7 @@ namespace network::timecheck
                         }
                     }
                 }
-                if(data_ref.crypt_requested != boost::posix_time::ptime{} and (now - data_ref.crypt_requested).total_seconds() > ENCRYPTION_TIMEOUT)
+                if(not data_ref.encrypted and (now - data_ref.crypt_requested).total_seconds() > ENCRYPTION_TIMEOUT)
                 {
                     if(not data_ref.symmetric_key_valid)
                     {// sent CRYPTSTART and waiting for CRYPTACCEPT
