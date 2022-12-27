@@ -13,4 +13,5 @@ namespace terminal::commands
     bool scroll(const std::string& line, const std::vector<std::string>& args);
     bool file(const std::string& line, const std::vector<std::string>& args);
     bool key(const std::string& line, const std::vector<std::string>& args);
+    bool encrypt(const std::string& line, const std::vector<std::string>& args);
 }

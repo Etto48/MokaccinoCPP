@@ -23,7 +23,7 @@ namespace network::authentication
      */
     std::string sign(const std::string& data);
     /**
-     * @brief returns the local public key in a string format like <n>:<e>
+     * @brief returns the local public key in a string in PEM format without the starting and ending line
      * 
      * @return the public key in string format, n and e are encoded with base64
      */

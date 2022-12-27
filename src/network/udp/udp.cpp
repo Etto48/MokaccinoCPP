@@ -7,6 +7,7 @@
 #include "../../multithreading/multithreading.hpp"
 #include "../../logging/logging.hpp"
 #include "../../parsing/parsing.hpp"
+#include "crypto/crypto.hpp"
 namespace network::udp
 {
     DataMap connection_map;
@@ -29,8 +30,15 @@ namespace network::udp
     bool send(std::string message, const std::string& name)
     {
         try{
-            message+='\n';
-            auto endpoint = connection_map[name].endpoint;
+            std::unique_lock lock(udp::connection_map.obj);
+            auto& info = connection_map[name];
+            auto endpoint = info.endpoint;
+            if(info.encrypted)
+            {
+                auto enc = crypto::encrypt(message,info.symmetric_key);
+                message = parsing::compose_message({"C",std::get<0>(enc),std::get<1>(enc),std::get<2>(enc)});
+            }
+            message+='\n';    
             socket.send_to(boost::asio::buffer(message,message.length()),endpoint);
             return true;
         }catch(DataMap::NotFound&){
@@ -40,9 +48,21 @@ namespace network::udp
     }
     void send(std::string message, const boost::asio::ip::udp::endpoint& endpoint)
     {
-        message+='\n';
         try
         {
+            try
+            {
+                std::unique_lock lock(connection_map.obj);
+                auto& info = connection_map[endpoint];
+                if(info.encrypted)
+                {
+                    auto enc = crypto::encrypt(message,info.symmetric_key);
+                    message = parsing::compose_message({"C",std::get<0>(enc),std::get<1>(enc),std::get<2>(enc)});
+                }
+            }
+            catch(DataMap::NotFound&)
+            {}
+            message+='\n';       
             socket.send_to(boost::asio::buffer(message,message.length()),endpoint);
         }catch(boost::system::system_error& e)
         {
@@ -58,10 +78,28 @@ namespace network::udp
         if(name.length() == 0)
             logging::message_log(endpoint.address().to_string() + ":" + std::to_string(endpoint.port()),msg);
         else
-            logging::message_log(name,msg);
-        */
-       
+            logging::message_log(name,msg);*/
+        
         auto keyword = parsing::get_msg_keyword(msg);
+        if(name.length() != 0 and keyword == "C")
+        {
+            try{
+                std::unique_lock lock(connection_map.obj);
+                auto& info = connection_map[name];
+                if(info.encrypted)
+                {
+                    auto args = parsing::msg_split(msg);
+                    if(args.size() == 4)
+                    {
+                        msg = crypto::decrypt(args[1],info.symmetric_key,args[2],args[3]);
+                        keyword = parsing::get_msg_keyword(msg);
+                    }
+                    else
+                        return;
+                }
+            }catch(DataMap::NotFound&)
+            {}
+        }
 
         std::unique_lock lock(message_queue_association_mutex);
         auto queue = message_queue_association.find(keyword);
@@ -107,6 +145,7 @@ namespace network::udp
             delete[] data;
             try
             {
+                std::unique_lock lock(udp::connection_map.obj);
                 auto& peerdata = connection_map[sender_endpoint];
                 peerdata.tmpData+=recv_data;
                 if(peerdata.tmpData.back()=='\n')

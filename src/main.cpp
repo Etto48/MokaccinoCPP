@@ -14,6 +14,7 @@
 #include "network/audio/audio.hpp"
 #include "network/file/file.hpp"
 #include "network/udp/udp.hpp"
+#include "network/udp/crypto/crypto.hpp"
 #include "network/authentication/authentication.hpp"
 #include "parsing/parsing.hpp"
 #include "ui/ui.hpp"
@@ -169,7 +170,8 @@ int main(int argc, char* argv[])
         network::connection::init(
             username,
             connection_whitelist,
-            config["network"]["connection"]["default_action"].value_or(std::string("prompt")));
+            config["network"]["connection"]["default_action"].value_or(std::string("prompt")),
+            config["network"]["connection"]["encrypt_by_default"].value_or(false));
         network::messages::init();
         network::timecheck::init();
         network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")),config["network"]["audio"]["threshold"].value_or<int16_t>(40));

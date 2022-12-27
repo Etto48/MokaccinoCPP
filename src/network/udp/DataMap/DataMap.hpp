@@ -5,6 +5,7 @@
 #include <exception>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio/ip/udp.hpp>
+#include "../crypto/crypto.hpp"
 
 namespace network
 {
@@ -31,6 +32,9 @@ namespace network
             boost::posix_time::time_duration last_latency;
             boost::posix_time::time_duration avg_latency;
             unsigned short offline_strikes = 0;
+            bool encrypted = false;
+            std::string asymmetric_key;
+            udp::crypto::Key symmetric_key;
         };
     private:
         /**
@@ -43,9 +47,13 @@ namespace network
          * 
          */
         std::map<std::string,PeerData> name_data; 
-        std::mutex obj;
         std::string server_name;
     public:
+        /**
+         * @brief you must acquire this before using the operator[]
+         * 
+         */
+        std::recursive_mutex obj;
         
         /**
          * @brief add a new user

@@ -38,14 +38,26 @@ namespace network::connection
      */
     extern std::vector<std::string> whitelist;
     /**
+     * @brief request to another peer to start an encrypted connection with ECDHE
+     * 
+     * @param name the name of the peer
+     */
+    void start_encryption(const std::string& name);
+    /**
+     * @brief stop the encrypted connection with another peer
+     * 
+     * @param name the name of the peer
+     */
+    void stop_encryption(const std::string& name);
+    /**
      * @brief initialize the module
      * 
      * @param local_username the username to initialize the username variable
      * @param whitelist list of users to automatically accept
      * @param default_action what to do if a user is not in the whitelist
-     * 
+     * @param encrypt_by_default if set to true, request encryption on connection
      */
-    void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action);
+    void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action, bool encrypt_by_default);
     /**
      * @brief request the connection to a specific endpoint, if you are connecting
      * to a server it must have the same username as the hostname

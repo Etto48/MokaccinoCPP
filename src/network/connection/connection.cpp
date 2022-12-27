@@ -10,6 +10,7 @@
 #include "../ConnectionAction/ConnectionAction.hpp"
 #include "../MessageQueue/MessageQueue.hpp"
 #include "../authentication/authentication.hpp"
+#include <openssl/evp.h>
 namespace network::connection
 {
     MessageQueue connection_queue;
@@ -18,6 +19,7 @@ namespace network::connection
     std::vector<std::string> whitelist;
     std::mutex status_map_mutex;
     std::map<boost::asio::ip::udp::endpoint,StatusEntry> status_map;
+    bool autoencryption = false;
     bool check_whitelist(const std::string& name)
     {
         for(auto& a: whitelist)
@@ -26,6 +28,32 @@ namespace network::connection
                 return true;
         }
         return false;
+    }
+    void start_encryption(const std::string& name)
+    {
+        try
+        {
+            std::unique_lock lock(udp::connection_map.obj);
+            auto& info = udp::connection_map[name];
+            auto key = udp::crypto::gen_ecdhe_key();
+            info.asymmetric_key = udp::crypto::privkey_to_string(key.get());
+            auto m = parsing::compose_message({"CRYPTSTART",udp::crypto::pubkey_to_string(key.get())});
+            parsing::sign_and_append(m);
+            udp::send(m,info.endpoint);
+        }catch(DataMap::NotFound&)
+        {}
+    }
+    void stop_encryption(const std::string& name)
+    {
+        try
+        {
+            std::unique_lock lock(udp::connection_map.obj);
+            auto& info = udp::connection_map[name];
+            info.encrypted = false;
+            info.asymmetric_key = "";
+            udp::send(parsing::compose_message({"CRYPTSTOP"}),info.endpoint);
+        }catch(DataMap::NotFound&)
+        {}
     }
     void accept_connection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& name,const std::string& received_nonce, const std::string& received_public_key, const std::string& sm)
     {
@@ -117,6 +145,8 @@ namespace network::connection
                         status_map.erase(item.src_endpoint);
                         udp::connection_map.add_user(name,item.src_endpoint);
                         logging::log("MSG","Peer " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET " is now connected as user \"" HIGHLIGHT+name+RESET"\"");
+                        if(autoencryption)
+                            start_encryption(item.src);
                     }
                     else
                     {
@@ -148,7 +178,8 @@ namespace network::connection
                     }
                     else
                     {
-                        auto target = udp::connection_map[args[0]];
+                        std::unique_lock lock(udp::connection_map.obj);
+                        auto& target = udp::connection_map[args[0]];
                         auto m = parsing::compose_message(
                             {"REQUESTED",
                             item.src,
@@ -220,6 +251,7 @@ namespace network::connection
                 }
                 else if(args[0] == "PONG" and args.size() == 2)
                 {
+                    std::unique_lock lock(udp::connection_map.obj);
                     auto now = boost::posix_time::microsec_clock::local_time();
                     auto& data = udp::connection_map[item.src];
                     if(std::to_string(data.last_ping_id) == args[1])
@@ -236,15 +268,92 @@ namespace network::connection
                         //logging::log("DBG","Handled pong from " HIGHLIGHT + item.src + RESET);
                     }
                 }
+                // CRYPTSTART <one time public key> <signature>
+                else if(args[0] == "CRYPTSTART" and args.size() == 3)
+                {
+                    if(parsing::verify_signature_from_message(item.msg,item.src))
+                    {
+                        try{
+                            std::unique_lock lock(udp::connection_map.obj);
+                            auto& user_info = udp::connection_map[item.src];
+                            auto key = udp::crypto::gen_ecdhe_key();
+                            try
+                            {
+                                auto remote_key = udp::crypto::string_to_pubkey(args[1]);
+                                user_info.asymmetric_key = udp::crypto::privkey_to_string(key.get());
+                                user_info.symmetric_key = udp::crypto::ecdhe(key.get(),remote_key.get());
+                                auto m = parsing::compose_message({"CRYPTACCEPT",udp::crypto::pubkey_to_string(key.get())});
+                                parsing::sign_and_append(m);
+                                udp::send(m,item.src_endpoint);
+                                user_info.encrypted = true;
+                                logging::log("MSG","Connection with " HIGHLIGHT +item.src+ RESET " is now encrypted");
+                            }catch(std::runtime_error&)
+                            {}
+                        }catch(DataMap::NotFound&)
+                        {}
+                    }
+                    else
+                    {// maybe MiM
+                        stop_encryption(item.src);
+                    }
+                }
+                // CRYPTACCEPT <one time public key> <signature>
+                else if(args[0] == "CRYPTACCEPT" and args.size() == 3)
+                {
+                    if(parsing::verify_signature_from_message(item.msg,item.src))
+                    {
+                        try
+                        {
+                            std::unique_lock lock(udp::connection_map.obj);
+                            auto& user_info = udp::connection_map[item.src];
+                            if(user_info.asymmetric_key.length() != 0)
+                            {
+                                auto key = udp::crypto::string_to_privkey(user_info.asymmetric_key);
+                                try
+                                {
+                                    auto remote_key = udp::crypto::string_to_pubkey(args[1]);
+                                    user_info.symmetric_key = udp::crypto::ecdhe(key.get(),remote_key.get());
+                                    user_info.encrypted = true;
+                                    logging::log("MSG","Connection with " HIGHLIGHT +item.src+ RESET " is now encrypted");
+                                }catch(std::runtime_error&)
+                                {}
+                            }
+                        }
+                        catch(DataMap::NotFound&)
+                        {}
+                    }
+                    else
+                    {
+                        stop_encryption(item.src);
+                    }
+                }
+                // CRYPTSTOP
+                else if(args[0] == "CRYPTSTOP" and args.size() == 1)
+                {
+                    try
+                    {
+                        std::unique_lock lock(udp::connection_map.obj);
+                        auto& user_info = udp::connection_map[item.src];
+                        if(user_info.asymmetric_key.length() != 0 and not user_info.encrypted)
+                            logging::log("ERR","Encryption refused from " HIGHLIGHT +item.src+ RESET); 
+                        else if(user_info.encrypted)       
+                            logging::log("MSG","User " HIGHLIGHT +item.src+ RESET " stopped the encryption");    
+                        user_info.asymmetric_key = "";
+                        user_info.encrypted = false;
+                    }
+                    catch(DataMap::NotFound&)
+                    {}
+                }
                 else {
                     logging::log("DBG","Dropped " HIGHLIGHT + args[0] + RESET " from " HIGHLIGHT + item.src_endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(item.src_endpoint.port()) + RESET);
                 }
             }
         }
     }
-    void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action)
+    void init(std::string local_username, const std::vector<std::string>& whitelist, const std::string& default_action, bool encrypt_by_default)
     {
         username = local_username;
+        autoencryption = encrypt_by_default;
         logging::log("DBG","Username set as \"" HIGHLIGHT + username + RESET "\"");
         network::connection::whitelist = whitelist;
         if(default_action == "accept")
@@ -273,6 +382,9 @@ namespace network::connection
         udp::register_queue("FAIL",connection_queue,true);
         udp::register_queue("PING",connection_queue,true);
         udp::register_queue("PONG",connection_queue,true);
+        udp::register_queue("CRYPTSTART",connection_queue,true);
+        udp::register_queue("CRYPTACCEPT",connection_queue,true);
+        udp::register_queue("CRYPTSTOP",connection_queue,true);
         if(DEBUG)
             udp::register_queue("TEST",connection_queue,true);
         multithreading::add_service("connection",connection);
@@ -280,6 +392,7 @@ namespace network::connection
     bool connect(const boost::asio::ip::udp::endpoint& endpoint,const std::string& expected_name)
     {
         try{//already connected
+            std::unique_lock lock(udp::connection_map.obj);
             auto name = udp::connection_map[endpoint].name;
             logging::log("ERR","You are already connected with " HIGHLIGHT +name+ RESET " at " HIGHLIGHT + endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(endpoint.port()) + RESET);
             return false;

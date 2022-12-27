@@ -28,12 +28,12 @@ namespace network::timecheck
             // ping check
             for(auto& [name,endpoint]: users)
             {
+                std::unique_lock lock(udp::connection_map.obj);
                 auto& data_ref = udp::connection_map[name];
-                auto data = data_ref;
                 auto now = boost::posix_time::microsec_clock::local_time();
-                if(data.last_ping_id == 0) // not waiting for ping
+                if(data_ref.last_ping_id == 0) // not waiting for ping
                 {
-                    if(data.ping_sent + boost::posix_time::seconds(PING_EVERY) < now or data.ping_sent == boost::posix_time::ptime{})
+                    if(data_ref.ping_sent + boost::posix_time::seconds(PING_EVERY) < now or data_ref.ping_sent == boost::posix_time::ptime{})
                     {// need to send another ping
                         data_ref.last_ping_id = boost::random::uniform_smallint<unsigned short>(0,65535)(rng);
                         data_ref.ping_sent = boost::posix_time::microsec_clock::local_time();
@@ -42,8 +42,8 @@ namespace network::timecheck
                     }
                 }else
                 {
-                    auto latency = data.avg_latency > MIN_PING ? data.avg_latency : MIN_PING;
-                    if((now - data.ping_sent) > (latency*CONFIDENCE))
+                    auto latency = data_ref.avg_latency > MIN_PING ? data_ref.avg_latency : MIN_PING;
+                    if((now - data_ref.ping_sent) > (latency*CONFIDENCE))
                     {
                         data_ref.last_ping_id = 0;
                         data_ref.offline_strikes += 1;

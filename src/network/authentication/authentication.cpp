@@ -15,6 +15,7 @@
 #include <map>
 #include "../../logging/logging.hpp"
 #include "../../base64/base64.h"
+#include "../udp/crypto/crypto.hpp"
 #include "KnownUsers/KnownUsers.hpp"
 namespace network::authentication
 {  
@@ -27,30 +28,6 @@ namespace network::authentication
         return std::unique_ptr<A,D>{ptr,destructor};
     }
 
-    std::string pubkey_to_string(EVP_PKEY* x)
-    {
-        constexpr size_t BUFFER_LEN = 2048;
-        std::unique_ptr<char> key_buffer{new char[BUFFER_LEN]};  
-        memset(key_buffer.get(),'\0',BUFFER_LEN);
-        auto bio = make_handle(BIO_new(BIO_s_mem()),BIO_free);
-        PEM_write_bio_PUBKEY(bio.get(),x);
-        BIO_read(bio.get(),key_buffer.get(),BUFFER_LEN-1);
-        std::string ret = key_buffer.get();
-        ret.erase(ret.begin(),ret.begin()+ret.find('\n'));
-        ret.erase(ret.begin()+ret.find_last_of('\n'),ret.end());
-        ret.erase(ret.begin()+ret.find_last_of('\n'),ret.end());
-        ret.erase(std::remove(ret.begin(),ret.end(),'\n'),ret.cend());
-        return ret;
-    }
-    std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> string_to_pubkey(const std::string& s)
-    {
-        auto pem_content = "-----BEGIN PUBLIC KEY-----\n" + s + "\n-----END PUBLIC KEY-----\n";
-        auto bio = make_handle(BIO_new_mem_buf(pem_content.c_str(),-1),BIO_free);
-        EVP_PKEY* tmp_pkey = nullptr;
-        if(not PEM_read_bio_PUBKEY(bio.get(),&tmp_pkey,nullptr,nullptr))
-            throw std::runtime_error{"Invalid pubkey format"};
-        return {tmp_pkey,EVP_PKEY_free};
-    }
     void gen_and_load_keys()
     {
         try
@@ -123,7 +100,7 @@ namespace network::authentication
             {
                 std::unique_ptr<unsigned char> signature{new unsigned char[b64d_size((unsigned int)signed_data.length())]};
                 auto signature_size = b64_decode((unsigned char*)signed_data.c_str(),(unsigned int)signed_data.length(),signature.get());
-                auto pubkey = string_to_pubkey(key_str);
+                auto pubkey = udp::crypto::string_to_pubkey(key_str);
                 auto message_digest_context = make_handle(EVP_MD_CTX_new(),EVP_MD_CTX_free);
                 EVP_DigestVerifyInit(message_digest_context.get(),nullptr,EVP_sha256(),nullptr,pubkey.get());
                 EVP_DigestVerifyUpdate(message_digest_context.get(),data.c_str(),data.length());
@@ -154,7 +131,7 @@ namespace network::authentication
     }
     std::string local_public_key()
     {
-        return pubkey_to_string(local_key.get());
+        return udp::crypto::pubkey_to_string(local_key.get());
     }
     #else
     #define CONCAT_CHAR ':'

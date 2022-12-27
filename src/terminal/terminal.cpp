@@ -248,9 +248,15 @@ namespace terminal
         add_command(CommandFunction{
             "key",
             "(add <username> <public key>)|(delete <username>)|(show <username>)|(list)",
-            "Add, remove or show one or a list of the public keys stored associated with every known user, if you add a new key the format should be <b64_encoded n>:<b64_encoded e>",
+            "Add, remove or show one or a list of the public keys stored associated with every known user, if you add a new key in the PEM format without the first and last line",
             commands::key,
             2,4});
+        add_command(CommandFunction{
+            "encrypt",
+            "(start|stop) <username>",
+            "Start or stop the encryption with another peer",
+            commands::encrypt,
+            3,3});
         #if !defined(NO_TERMINAL_UI) && defined(NO_CURSES)
         add_command(CommandFunction{
             "scroll",

@@ -30,7 +30,7 @@ namespace network::authentication
          * @brief add a key if not already present and save to file
          * 
          * @param name the name of the user
-         * @param key the key in the format <b64_encoded n>:<b64_encoded e>,
+         * @param key the key in the PEM format without the first and last line,
          * the key can also be "" to blacklist the user
          * @return true if the user was not present
          * @return false if the user was already present
@@ -41,7 +41,7 @@ namespace network::authentication
          * with the selected user and save to file
          * 
          * @param name the name of the user
-         * @param key the key in the format <b64_encoded n>:<b64_encoded e>, 
+         * @param key the key in PEM format without the first and last line, 
          * the key can also be "" to blacklist the user
          * @return true if the user was not present
          * @return false if the user was already present
@@ -74,7 +74,7 @@ namespace network::authentication
          * @brief get the key associated with a user, throws KeyNotFound if the user was not present
          * 
          * @param name the name of the user to search
-         * @return the key in the format <b64_encoded n>:<b64_encoded e>, 
+         * @return the key in the PEM format without the first and last line, 
          * the key can also be "" if the user was blacklisted
          */
         std::string get_key(const std::string& name);

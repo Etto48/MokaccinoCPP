@@ -151,7 +151,8 @@ namespace terminal::commands
             if(args.size() == 3)
             {
                 try{
-                    auto user_info = network::udp::connection_map[args[2]];
+                    std::unique_lock lock(network::udp::connection_map.obj);
+                    auto& user_info = network::udp::connection_map[args[2]];
                     logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
                     logging::log("MSG","    Address: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
                     auto ms = user_info.avg_latency.total_milliseconds() / 2;
@@ -379,7 +380,7 @@ namespace terminal::commands
             {
                 if(args[3].find(':') == args[3].npos)
                 {
-                    logging::log("ERR","The key must be in the format <b64_encoded n>:<b64_encoded e>");
+                    logging::log("ERR","The key must be in the PEM format without the first and last line");
                     return false;
                 }
                 else if(network::authentication::known_users.add_key(args[2],args[3]))
@@ -397,6 +398,55 @@ namespace terminal::commands
         else
         {
             logging::log("ERR","The second argument must be add, delete, show or list, use \"help key\" for more info");
+            return false;
+        }
+    }
+    bool encrypt(const std::string& line, const std::vector<std::string>& args)
+    {
+        if(args[1] == "start")
+        {
+            try{
+                std::unique_lock lock(network::udp::connection_map.obj);
+                auto& info = network::udp::connection_map[args[2]];
+                if(info.encrypted)
+                {
+                    logging::log("ERR","Connection with " HIGHLIGHT +args[2]+ RESET "is already encrypted");
+                    return false;
+                }else
+                {
+                    network::connection::start_encryption(args[2]);
+                    return true;
+                }
+            }catch(network::DataMap::NotFound&)
+            {
+                logging::user_not_found_log(args[1]);
+                return false;
+            }
+        }
+        else if(args[1] == "stop")
+        {
+            try{
+                std::unique_lock lock(network::udp::connection_map.obj);
+                auto& info = network::udp::connection_map[args[2]];
+                if(not info.encrypted)
+                {
+                    logging::log("ERR","Connection with " HIGHLIGHT +args[2]+ RESET "is not encrypted");
+                    return false;
+                }
+                else
+                {
+                    network::connection::stop_encryption(args[2]);
+                    return true;
+                }
+            }catch(network::DataMap::NotFound&)
+            {
+                logging::user_not_found_log(args[1]);
+                return false;
+            }
+        }
+        else
+        {
+            logging::log("ERR","The second argument must be start or stop, use \"help encrypt\" for more info");
             return false;
         }
     }

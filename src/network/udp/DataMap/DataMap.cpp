@@ -13,7 +13,10 @@ namespace network
         {
             if(name != "loopback")
                 server_name = name;
-            name_data[name] = PeerData{name,endpoint,""};
+            auto& ref = name_data[name];
+            ref.name = name;
+            ref.endpoint = endpoint;
+            
             endpoint_name[endpoint] = name;
             return true;
         }
@@ -86,12 +89,12 @@ namespace network
     }
     DataMap::PeerData& DataMap::operator[](const std::string& name)
     {
-        std::unique_lock lock(obj);
+        //std::unique_lock lock(obj);
         return _op_sqbr(name);
     }
     DataMap::PeerData& DataMap::operator[](const boost::asio::ip::udp::endpoint& endpoint)
     {
-        std::unique_lock lock(obj);
+        //std::unique_lock lock(obj);
         return _op_sqbr(endpoint);
     }
     bool DataMap::check_user(const std::string& name)

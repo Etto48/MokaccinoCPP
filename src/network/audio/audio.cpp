@@ -373,6 +373,7 @@ namespace network::audio
             if(DEBUG and name == "loopback")
             {   try
                 {
+                    std::unique_lock lock(udp::connection_map.obj);
                     audio_buddy = {"loopback",udp::connection_map["loopback"].endpoint};
                     logging::log("MSG","Voice call accepted from " HIGHLIGHT "loopback" RESET);
                     comms_init();
@@ -387,7 +388,11 @@ namespace network::audio
             {
                 try
                 {
-                    auto endpoint = udp::connection_map[name].endpoint;
+                    boost::asio::ip::udp::endpoint endpoint;
+                    {
+                        std::unique_lock lock(udp::connection_map.obj);
+                        endpoint = udp::connection_map[name].endpoint;
+                    }
                     pending_name = name;
                     network::udp::send(parsing::compose_message({"AUDIOSTART"}),endpoint);
                     return true;

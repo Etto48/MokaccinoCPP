@@ -283,7 +283,11 @@ namespace network::file
                         auto& info = file_transfers[k];
                         try
                         {
-                            auto endpoint = udp::connection_map[info.username].endpoint;   
+                            boost::asio::ip::udp::endpoint endpoint;
+                            {
+                                std::unique_lock lock(udp::connection_map.obj);
+                                endpoint = udp::connection_map[info.username].endpoint;   
+                            }
                             auto window_difference = info.next_sequence_number - info.last_acked_number;
                             auto max_window_size = std::min(window_size*CHUNK_SIZE, info.data.size() - info.last_acked_number);
                             switch (info.direction)
