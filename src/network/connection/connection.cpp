@@ -284,7 +284,7 @@ namespace network::connection
                         try{
                             std::unique_lock lock(udp::connection_map.obj);
                             auto& user_info = udp::connection_map[item.src];
-                            if(not user_info.encrypted)
+                            if(not user_info.symmetric_key_valid)
                             {
                                 auto key = udp::crypto::gen_ecdhe_key();
                                 try
@@ -299,6 +299,14 @@ namespace network::connection
                                     user_info.crypt_requested = boost::posix_time::microsec_clock::local_time();
                                 }catch(std::runtime_error&)
                                 {}
+                            }
+                            else if(not user_info.encrypted)
+                            {
+                                auto key = udp::crypto::string_to_privkey(user_info.asymmetric_key);
+                                auto m = parsing::compose_message({"CRYPTACCEPT",udp::crypto::pubkey_to_string(key.get())});
+                                parsing::sign_and_append(m);
+                                udp::send(m,item.src_endpoint);
+                                user_info.crypt_requested = boost::posix_time::microsec_clock::local_time();
                             }
                         }catch(DataMap::NotFound&)
                         {}
@@ -367,14 +375,17 @@ namespace network::connection
                     {
                         std::unique_lock lock(udp::connection_map.obj);
                         auto& user_info = udp::connection_map[item.src];
-                        if(user_info.asymmetric_key.length() != 0 and user_info.symmetric_key_valid)
+                        if(not user_info.encrypted)
                         {
-                            user_info.encrypted = true;
-                            logging::log("MSG","Connection with " HIGHLIGHT +item.src+ RESET " is now encrypted");
-                        }
-                        else
-                        {
-                            stop_encryption(item.src);
+                            if(user_info.asymmetric_key.length() != 0 and user_info.symmetric_key_valid)
+                            {
+                                user_info.encrypted = true;
+                                logging::log("MSG","Connection with " HIGHLIGHT +item.src+ RESET " is now encrypted");
+                            }
+                            else
+                            {
+                                stop_encryption(item.src);
+                            }
                         }
                     }
                     catch(DataMap::NotFound&)
