@@ -167,11 +167,16 @@ int main(int argc, char* argv[])
         logging::supervisor::init(60);
         network::authentication::init();
         network::udp::init(config["network"]["port"].value_or(args["port"].as<uint16_t>()));
+        auto encryption = config["network"]["connection"]["encrypt_by_default"].value_or(true);
+        if(not encryption)
+            logging::log("MSG","Encryption " HIGHLIGHT "disabled" RESET);
+        else    
+            logging::log("MSG","Encryption " HIGHLIGHT "enabled" RESET);
         network::connection::init(
             username,
             connection_whitelist,
             config["network"]["connection"]["default_action"].value_or(std::string("prompt")),
-            config["network"]["connection"]["encrypt_by_default"].value_or(false));
+            encryption);
         network::messages::init();
         network::timecheck::init();
         network::audio::init(audio_whitelist,config["network"]["audio"]["default_action"].value_or(std::string("prompt")),config["network"]["audio"]["threshold"].value_or<int16_t>(40));

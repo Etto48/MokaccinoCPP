@@ -33,8 +33,10 @@ namespace network
             boost::posix_time::time_duration avg_latency;
             unsigned short offline_strikes = 0;
             bool encrypted = false;
+            bool symmetric_key_valid = false;
             std::string asymmetric_key;
             udp::crypto::Key symmetric_key;
+            boost::posix_time::ptime crypt_requested;
         };
     private:
         /**

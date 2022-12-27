@@ -70,6 +70,9 @@ whitelist = ["peer1","peer2"]
 # this can be set to "accept" (auto accept every request), "refuse" (auto refuse every not whitelisted connection), "prompt" same as not defined
 default_action = "prompt"
 
+# if set to true every connection will be encrypted after the 3-way handshake
+encrypt_by_default = true
+
 [terminal]
 # you will run these commands after startup
 startup_commands = ["msg server1.com hello everybody","voice start server2.net"]
@@ -206,6 +209,36 @@ You should send an ACK every time you have received "window_size" sequential chu
 You should send an ACK relative to the the last sequential chunk you received every time you receive a duplicate file packet, this can suggest that an ACK was lost
 
 If you receive a duplicate ACK you should send the next chunk relative to the ACK
+
+### End to end encryption
+
+#### Key exchange
+
+The protocol used is ECDHE signed with ECDSA using the local key
+
+A can request to B to encode the connection in the following way:
+
+A must generate a new EC keypair (this must not be reused for other sessions or peers)
+
+A to B: `CRYPTSTART <new public key> <signature with local key>`
+
+Now B must check the signature and if accepts it must generate a new EC keypair and respond with:
+
+B to A: `CRYPTACCEPT <new public key> <signature with local key>`
+
+A to B: `CRYPTACK`
+
+If B does not want to accept the encryption request or one of A or B wants to stop the encryption it must send `CRYPTSTOP`
+
+#### Encrypted messages
+
+After the encryption handshake has ended every message between A and B should be `C <encrypted message> <IV> <authentication tag>`
+
+Every field is encoded base64, the symmetric key cipher is AES256-GCM
+
+The initialization vector must be 8B once decoded
+
+The tag must be 16B once decoded
 
 ## Libraries used
 

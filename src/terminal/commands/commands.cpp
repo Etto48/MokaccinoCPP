@@ -154,6 +154,7 @@ namespace terminal::commands
                     std::unique_lock lock(network::udp::connection_map.obj);
                     auto& user_info = network::udp::connection_map[args[2]];
                     logging::log("MSG",HIGHLIGHT + user_info.name + RESET);
+                    logging::log("MSG","    Encryption: " HIGHLIGHT + std::string(user_info.encrypted?"on":"off") + RESET);
                     logging::log("MSG","    Address: " HIGHLIGHT + user_info.endpoint.address().to_string() + RESET ":" HIGHLIGHT + std::to_string(user_info.endpoint.port()) + RESET);
                     auto ms = user_info.avg_latency.total_milliseconds() / 2;
                     if(ms != 0)
@@ -410,7 +411,7 @@ namespace terminal::commands
                 auto& info = network::udp::connection_map[args[2]];
                 if(info.encrypted)
                 {
-                    logging::log("ERR","Connection with " HIGHLIGHT +args[2]+ RESET "is already encrypted");
+                    logging::log("ERR","Connection with " HIGHLIGHT +args[2]+ RESET " is already encrypted");
                     return false;
                 }else
                 {
@@ -430,12 +431,13 @@ namespace terminal::commands
                 auto& info = network::udp::connection_map[args[2]];
                 if(not info.encrypted)
                 {
-                    logging::log("ERR","Connection with " HIGHLIGHT +args[2]+ RESET "is not encrypted");
+                    logging::log("ERR","Connection with " HIGHLIGHT +args[2]+ RESET " is not encrypted");
                     return false;
                 }
                 else
                 {
                     network::connection::stop_encryption(args[2]);
+                    logging::log("MSG","Connection with " HIGHLIGHT +args[2]+ RESET " is no more encrypted");
                     return true;
                 }
             }catch(network::DataMap::NotFound&)
