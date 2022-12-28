@@ -6,7 +6,7 @@
 [![Windows](https://github.com/Etto48/MokaccinoCPP/actions/workflows/windows-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/windows-cmake.yml)
 [![MacOS](https://github.com/Etto48/MokaccinoCPP/actions/workflows/macos-cmake.yml/badge.svg)](https://github.com/Etto48/MokaccinoCPP/actions/workflows/macos-cmake.yml)
 
-Mokaccino is a simple P2P application written in C++ capable of creating unstructured networks for sending text messages and using VoIP
+Mokaccino is a simple P2P application written in C++ capable of creating unstructured networks for sending text messages, using VoIP and sending files, the protocol now supports authenticaticated connection and message encryption.
 
 ## Building
 
@@ -108,7 +108,7 @@ If a peer has saved a public key it must ignore every other key sent to him from
 
 #### Signature
 
-The signature and verification algorithm uses ECDSA over the secp521r1 prime curve (you can set it to RSA with a CMake option) with SHA256 as message digest algorithm
+The signature and verification algorithm uses ECDSA over the secp521r1 prime curve (you can set it to RSA with a CMake option) with SHA384 as message digest algorithm
 
 #### Direct connection
 
@@ -211,6 +211,10 @@ You should send an ACK relative to the the last sequential chunk you received ev
 If you receive a duplicate ACK you should send the next chunk relative to the ACK
 
 ### End to end encryption
+
+The algorithm used is ECDHE authenticated with ECDSA with hash SHA384 and the curve is secp521r1
+
+The symmetric key cipher is AES256-GCM and the key is derived with the first 32B of the SHA512 hash of the shared secret
 
 #### Key exchange
 

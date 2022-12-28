@@ -102,7 +102,7 @@ namespace network::authentication
                 auto signature_size = b64_decode((unsigned char*)signed_data.c_str(),(unsigned int)signed_data.length(),signature.get());
                 auto pubkey = udp::crypto::string_to_pubkey(key_str);
                 auto message_digest_context = make_handle(EVP_MD_CTX_new(),EVP_MD_CTX_free);
-                EVP_DigestVerifyInit(message_digest_context.get(),nullptr,EVP_sha256(),nullptr,pubkey.get());
+                EVP_DigestVerifyInit(message_digest_context.get(),nullptr,EVP_sha384(),nullptr,pubkey.get());
                 EVP_DigestVerifyUpdate(message_digest_context.get(),data.c_str(),data.length());
                 return 1==EVP_DigestVerifyFinal(message_digest_context.get(),signature.get(),signature_size);
             }catch(const std::runtime_error&)
@@ -118,7 +118,7 @@ namespace network::authentication
     std::string sign(const std::string& data)
     {
         auto message_digest_context = make_handle(EVP_MD_CTX_new(),EVP_MD_CTX_free);
-        EVP_DigestSignInit(message_digest_context.get(),nullptr,EVP_sha256(),nullptr,local_key.get());
+        EVP_DigestSignInit(message_digest_context.get(),nullptr,EVP_sha384(),nullptr,local_key.get());
         EVP_DigestSignUpdate(message_digest_context.get(),data.c_str(),data.length());
         size_t signature_size = 0;
         EVP_DigestSignFinal(message_digest_context.get(),nullptr,&signature_size);
@@ -279,11 +279,11 @@ namespace network::authentication
             if(key_str.length() == 0)//the user was blacklisted
                 return false;
             std::unique_ptr<RSA,decltype(&::RSA_free)> pubkey {string_to_pubkey(key_str),RSA_free};
-            std::unique_ptr<unsigned char> hashed_data{new unsigned char[SHA256_DIGEST_LENGTH]};
-            SHA256((unsigned char*)data.c_str(),data.length(),hashed_data.get());
+            std::unique_ptr<unsigned char> hashed_data{new unsigned char[SHA384_DIGEST_LENGTH]};
+            SHA384((unsigned char*)data.c_str(),data.length(),hashed_data.get());
             std::unique_ptr<unsigned char> decoded_signature{new unsigned char[b64d_size((unsigned int)signed_data.length())]};
             unsigned int signature_len = b64_decode((unsigned char*)signed_data.c_str(),(unsigned int)signed_data.length(),decoded_signature.get());
-            bool success = (RSA_verify(NID_sha256,hashed_data.get(),SHA256_DIGEST_LENGTH,decoded_signature.get(),signature_len,pubkey.get()) == 1);
+            bool success = (RSA_verify(NID_sha384,hashed_data.get(),SHA384_DIGEST_LENGTH,decoded_signature.get(),signature_len,pubkey.get()) == 1);
             return success;
         }catch(KnownUsers::KeyNotFound&)
         {
@@ -292,11 +292,11 @@ namespace network::authentication
     }
     std::string sign(const std::string& data)
     {
-        std::unique_ptr<unsigned char> hashed_data{new unsigned char[SHA256_DIGEST_LENGTH]};
-        SHA256((unsigned char*)data.c_str(),data.length(),hashed_data.get());
+        std::unique_ptr<unsigned char> hashed_data{new unsigned char[SHA384_DIGEST_LENGTH]};
+        SHA384((unsigned char*)data.c_str(),data.length(),hashed_data.get());
         std::unique_ptr<unsigned char> signed_data{new unsigned char[RSA_size(local_key)]};
         unsigned int siglen = 0;
-        RSA_sign(NID_sha256,hashed_data.get(),SHA256_DIGEST_LENGTH,signed_data.get(),&siglen,local_key);
+        RSA_sign(NID_sha384,hashed_data.get(),SHA384_DIGEST_LENGTH,signed_data.get(),&siglen,local_key);
         std::unique_ptr<char> sign_b64{new char[b64e_size(siglen)+1]};
         b64_encode(signed_data.get(),siglen,(unsigned char*)sign_b64.get());
         return std::string(sign_b64.get());

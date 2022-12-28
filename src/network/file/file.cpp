@@ -92,10 +92,10 @@ namespace network::file
     std::map<std::string,FileTransferInfo> file_transfers;
     std::string hash(const std::vector<unsigned char>& file_content)
     {
-        std::unique_ptr<unsigned char> md{new unsigned char[SHA256_DIGEST_LENGTH]};
-        std::unique_ptr<char> b64md{new char[b64e_size(SHA256_DIGEST_LENGTH)+1]};
-        SHA256(file_content.data(),file_content.size(),md.get());
-        b64_encode(md.get(),SHA256_DIGEST_LENGTH,(unsigned char*)b64md.get());
+        std::unique_ptr<unsigned char> md{new unsigned char[SHA384_DIGEST_LENGTH]};
+        std::unique_ptr<char> b64md{new char[b64e_size(SHA384_DIGEST_LENGTH)+1]};
+        SHA384(file_content.data(),file_content.size(),md.get());
+        b64_encode(md.get(),SHA384_DIGEST_LENGTH,(unsigned char*)b64md.get());
         return b64md.get();
     }
     bool init_file_upload(const std::string& to, const std::string& filename)

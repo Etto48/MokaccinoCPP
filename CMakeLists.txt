@@ -101,6 +101,13 @@ else()
     message(STATUS "Using signature algorithm RSA (3072b)")
 endif()
 
+option(LOW_LEVEL_DEBUG "If enabled the logger will log every udp packet sent or received" OFF)
+if(LOW_LEVEL_DEBUG)
+    message(STATUS "Enabling low level debug log")
+    add_compile_definitions(LL_DEBUG)
+else()
+    message(STATUS "Disabling low level debug log")
+endif()
 
 #link and include
 include_directories(${Boost_INCLUDE_DIRS}) 

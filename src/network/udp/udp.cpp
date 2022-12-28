@@ -38,7 +38,9 @@ namespace network::udp
                 auto enc = crypto::encrypt(message,info.symmetric_key);
                 message = parsing::compose_message({"C",std::get<0>(enc),std::get<1>(enc),std::get<2>(enc)});
             }
-            //logging::log("DBG","Message to " HIGHLIGHT +name+ RESET " sent: \"" HIGHLIGHT + message + RESET "\"" );
+            #ifdef LL_DEBUG
+            logging::log("DBG","Message to " HIGHLIGHT +name+ RESET " sent: \"" HIGHLIGHT + message + RESET "\"" );
+            #endif
             message+='\n';    
             socket.send_to(boost::asio::buffer(message,message.length()),endpoint);
             return true;
@@ -55,7 +57,9 @@ namespace network::udp
             {
                 std::unique_lock lock(connection_map.obj);
                 auto& info = connection_map[endpoint];
-                //logging::log("DBG","Message to " HIGHLIGHT +info.name+ RESET " sent: \"" HIGHLIGHT + message + RESET "\"" );
+                #ifdef LL_DEBUG
+                logging::log("DBG","Message to " HIGHLIGHT +info.name+ RESET " sent: \"" HIGHLIGHT + message + RESET "\"" );
+                #endif
                 if(info.encrypted)
                 {
                     auto enc = crypto::encrypt(message,info.symmetric_key);
@@ -75,12 +79,6 @@ namespace network::udp
     void handle_message(const std::string& name,const boost::asio::ip::udp::endpoint& endpoint, std::string msg)
     {
         msg.pop_back();//remove '\n'
-        
-        
-        /*if(name.length() == 0)
-            logging::message_log(endpoint.address().to_string() + ":" + std::to_string(endpoint.port()),msg);
-        else
-            logging::message_log(name,msg);*/
         
         auto keyword = parsing::get_msg_keyword(msg);
         if(keyword == "C")
@@ -110,6 +108,13 @@ namespace network::udp
                 return;
             }
         }
+
+        #ifdef LL_DEBUG
+        if(name.length() == 0)
+            logging::message_log(endpoint.address().to_string() + ":" + std::to_string(endpoint.port()),msg);
+        else
+            logging::message_log(name,msg);
+        #endif
 
         std::unique_lock lock(message_queue_association_mutex);
         auto queue = message_queue_association.find(keyword);

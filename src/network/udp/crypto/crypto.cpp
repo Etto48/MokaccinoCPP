@@ -9,6 +9,7 @@
 #include <openssl/ec.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
+#include <openssl/kdf.h>
 namespace network::udp::crypto
 {
     #define AES_IV_SIZE 8
@@ -79,7 +80,9 @@ namespace network::udp::crypto
         if(not EVP_PKEY_derive(context.get(),secret.get(),&secret_len))
             throw std::runtime_error{"EVP_PKEY_derive"};
         Key ret;
-        SHA256(secret.get(),secret_len,ret.data);
+        std::unique_ptr<unsigned char> long_key{new unsigned char[SHA512_DIGEST_LENGTH]};
+        SHA512(secret.get(),secret_len,long_key.get());
+        memcpy(ret.data,long_key.get(),AES256_KEY_SIZE);
         return ret;
     }
     std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> gen_ecdhe_key()
@@ -113,7 +116,7 @@ namespace network::udp::crypto
         auto ret = RAND_bytes(iv,AES_IV_SIZE);
         ret = EVP_EncryptInit_ex(context.get(),EVP_aes_256_gcm(),nullptr,nullptr,nullptr);
         ret = EVP_CIPHER_CTX_ctrl(context.get(),EVP_CTRL_GCM_SET_IVLEN,AES_IV_SIZE,nullptr);
-        ret = EVP_CIPHER_CTX_set_key_length(context.get(),SHA256_DIGEST_LENGTH);
+        ret = EVP_CIPHER_CTX_set_key_length(context.get(),SHA384_DIGEST_LENGTH);
         ret = EVP_EncryptInit_ex(context.get(),nullptr,nullptr,key.data,iv);
         int total_len = 0;
         int outl = 0;
@@ -145,7 +148,7 @@ namespace network::udp::crypto
         auto c_len = b64_decode((unsigned char*)cryptogram.c_str(),(unsigned int)cryptogram.length(),raw_c.get());
         auto ret = EVP_DecryptInit_ex(context.get(),EVP_aes_256_gcm(),nullptr,nullptr,nullptr);
         ret = EVP_CIPHER_CTX_ctrl(context.get(),EVP_CTRL_GCM_SET_IVLEN,AES_IV_SIZE,nullptr);
-        ret = EVP_CIPHER_CTX_set_key_length(context.get(),SHA256_DIGEST_LENGTH);
+        ret = EVP_CIPHER_CTX_set_key_length(context.get(),SHA384_DIGEST_LENGTH);
         ret = EVP_DecryptInit_ex(context.get(),nullptr,nullptr,key.data,raw_iv.get());
         int total_len = 0;
         int outl = 0;

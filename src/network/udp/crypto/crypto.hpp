@@ -4,11 +4,13 @@
 #include <memory>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include <openssl/aes.h>
+#define AES256_KEY_SIZE 32
 namespace network::udp::crypto
 {
     struct Key
     {
-        unsigned char data[SHA256_DIGEST_LENGTH] = {0};
+        unsigned char data[AES256_KEY_SIZE] = {0};
     };
     std::string pubkey_to_string(EVP_PKEY* x);
     std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> string_to_pubkey(const std::string& s);
