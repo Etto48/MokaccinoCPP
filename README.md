@@ -214,7 +214,7 @@ If you receive a duplicate ACK you should send the next chunk relative to the AC
 
 The algorithm used is ECDHE authenticated with ECDSA with hash SHA384 and the curve is secp521r1
 
-The symmetric key cipher is AES256-GCM and the key is derived with the first 32B of the SHA512 hash of the shared secret
+The symmetric key cipher is AES256-GCM and the key is derived with HKDF (with hash SHA384) from the shared secret
 
 #### Key exchange
 

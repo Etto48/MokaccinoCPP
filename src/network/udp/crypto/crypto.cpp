@@ -18,6 +18,26 @@ namespace network::udp::crypto
     {
         return std::unique_ptr<A,D>{ptr,deleter};
     }
+    Key derive_key(const std::vector<unsigned char>& shared_secret) 
+    {
+        Key key;
+        
+        auto context = make_handle(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF,nullptr), EVP_PKEY_CTX_free);
+        if (!context)
+            throw std::runtime_error("Failed to create KDF context");
+        if (EVP_PKEY_derive_init(context.get()) != 1)
+            throw std::runtime_error("Failed to initialize PKEY context for key derivation");
+        if (EVP_PKEY_CTX_set_hkdf_md(context.get(), EVP_sha384()) != 1)
+            throw std::runtime_error("Failed to set hash function for PKEY context");
+        if (EVP_PKEY_CTX_set1_hkdf_key(context.get(), shared_secret.data(), (int)shared_secret.size()) != 1)
+            throw std::runtime_error("Failed to set shared secret for PKEY context");
+        size_t key_size = AES256_KEY_SIZE;
+        if (EVP_PKEY_derive(context.get(), key.data, &key_size) != 1)
+            throw std::runtime_error("Failed to derive key using PKEY context");
+    
+        return key;
+    }
+
     std::string pubkey_to_string(EVP_PKEY* x)
     {
         constexpr size_t BUFFER_LEN = 2048;
@@ -76,14 +96,10 @@ namespace network::udp::crypto
         size_t secret_len = 0;
         if(not EVP_PKEY_derive(context.get(),nullptr,&secret_len))
             throw std::runtime_error{"EVP_PKEY_derive"};
-        std::unique_ptr<unsigned char> secret{new unsigned char[secret_len]};
-        if(not EVP_PKEY_derive(context.get(),secret.get(),&secret_len))
+        std::vector<unsigned char> secret(secret_len);
+        if(not EVP_PKEY_derive(context.get(),secret.data(),&secret_len))
             throw std::runtime_error{"EVP_PKEY_derive"};
-        Key ret;
-        std::unique_ptr<unsigned char> long_key{new unsigned char[SHA512_DIGEST_LENGTH]};
-        SHA512(secret.get(),secret_len,long_key.get());
-        memcpy(ret.data,long_key.get(),AES256_KEY_SIZE);
-        return ret;
+        return derive_key(secret);
     }
     std::unique_ptr<EVP_PKEY,decltype(&::EVP_PKEY_free)> gen_ecdhe_key()
     {
